@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { getPlatformPrefix } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -204,7 +205,7 @@ export default function PublicFeed() {
                   <DifficultyBadge level={q.difficulty} />
                   {q.leetcode_number && (
                     <Badge variant="outline" className="font-mono text-[10px] bg-primary/10 text-primary border-primary/30">
-                      LC #{q.leetcode_number}
+                      {getPlatformPrefix(q.platform)} #{q.leetcode_number}
                     </Badge>
                   )}
                 </div>

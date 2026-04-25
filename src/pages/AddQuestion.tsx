@@ -89,7 +89,50 @@ const PATTERN_TOPICS = [
   "Other",
 ];
 
-const PLATFORMS = ["LeetCode", "HackerRank", "Codeforces", "GeeksforGeeks", "AtCoder", "InterviewBit", "CodeChef", "Other"];
+const PLATFORMS = ["LeetCode", "HackerRank", "Codeforces", "GeeksforGeeks", "Coding Ninjas", "AtCoder", "InterviewBit", "CodeChef", "CSES", "Other"];
+
+const PLATFORM_CONFIG: Record<string, { placeholder: string; searchUrl: (title: string) => string }> = {
+  LeetCode: {
+    placeholder: "https://leetcode.com/problems/...",
+    searchUrl: (t) => `https://leetcode.com/problemset/?search=${encodeURIComponent(t)}`,
+  },
+  HackerRank: {
+    placeholder: "https://www.hackerrank.com/challenges/...",
+    searchUrl: (t) => `https://www.google.com/search?q=site:hackerrank.com+${encodeURIComponent(t)}`,
+  },
+  Codeforces: {
+    placeholder: "https://codeforces.com/problemset/problem/...",
+    searchUrl: (t) => `https://codeforces.com/problemset?query=${encodeURIComponent(t)}`,
+  },
+  GeeksforGeeks: {
+    placeholder: "https://www.geeksforgeeks.org/problems/...",
+    searchUrl: (t) => `https://www.geeksforgeeks.org/explore?page=1&sortBy=relevance&search=${encodeURIComponent(t)}`,
+  },
+  "Coding Ninjas": {
+    placeholder: "https://www.naukri.com/code360/problems/...",
+    searchUrl: (t) => `https://www.google.com/search?q=site:naukri.com/code360+${encodeURIComponent(t)}`,
+  },
+  AtCoder: {
+    placeholder: "https://atcoder.jp/contests/...",
+    searchUrl: (t) => `https://atcoder.jp/contests/search?q=${encodeURIComponent(t)}`,
+  },
+  InterviewBit: {
+    placeholder: "https://www.interviewbit.com/problems/...",
+    searchUrl: (t) => `https://www.google.com/search?q=site:interviewbit.com+${encodeURIComponent(t)}`,
+  },
+  CodeChef: {
+    placeholder: "https://www.codechef.com/problems/...",
+    searchUrl: (t) => `https://www.codechef.com/search/problems?search=${encodeURIComponent(t)}`,
+  },
+  CSES: {
+    placeholder: "https://cses.fi/problemset/task/...",
+    searchUrl: (t) => `https://www.google.com/search?q=site:cses.fi+${encodeURIComponent(t)}`,
+  },
+  Other: {
+    placeholder: "https://...",
+    searchUrl: (t) => `https://www.google.com/search?q=${encodeURIComponent(t)}+dsa+problem`,
+  },
+};
 
 export default function AddQuestion() {
   const navigate = useNavigate();
@@ -104,7 +147,7 @@ export default function AddQuestion() {
   const [isPublic, setIsPublic] = useState(false);
   const [lcLoading, setLcLoading] = useState(false);
   const [lcResult, setLcResult] = useState<
-    | { found: true; questionNumber: string; title: string; url: string; difficulty: string }
+    | { found: true; questionNumber: string; title: string; url: string; difficulty: string; source: string }
     | { found: false }
     | null
   >(null);
@@ -158,6 +201,7 @@ export default function AddQuestion() {
           title: data.title,
           url: data.problem_link ?? "",
           difficulty: data.difficulty,
+          source: data.platform ?? "LeetCode",
         });
       }
     });
@@ -209,33 +253,48 @@ export default function AddQuestion() {
 
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
 
-  const lookupLeetCode = async () => {
+  const handleLookup = async () => {
     const title = form.title.trim();
     if (title.length < 2) {
       toast.error("Enter a question title first");
       return;
     }
-    setLcLoading(true);
-    setLcResult(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("leetcode-lookup", {
-        body: { title },
-      });
-      if (error) throw error;
-      if (data?.found) {
-        setLcResult(data);
-        setLeetcodeNumber(data.questionNumber);
-        setForm((prev) => ({ ...prev, problem_link: data.url, platform: "LeetCode" }));
-        toast.success(`Found: #${data.questionNumber} ${data.title}`);
-      } else {
-        setLcResult({ found: false });
-        setLeetcodeNumber(null);
-        toast.message("Not found on LeetCode");
+
+    const platform = form.platform;
+    const supportedPlatforms = ["LeetCode", "Codeforces", "AtCoder"];
+
+    if (supportedPlatforms.includes(platform)) {
+      setLcLoading(true);
+      setLcResult(null);
+      try {
+        const { data, error } = await supabase.functions.invoke("problem-lookup", {
+          body: { title, platform },
+        });
+        if (error) throw error;
+        if (data?.found) {
+          setLcResult(data);
+          setLeetcodeNumber(data.questionNumber);
+          setForm((prev) => ({ 
+            ...prev, 
+            problem_link: data.url, 
+            platform: data.source,
+            difficulty: data.difficulty as any,
+          }));
+          toast.success(`Found on ${data.source}: #${data.questionNumber} ${data.title}`);
+        } else {
+          setLcResult({ found: false });
+          setLeetcodeNumber(null);
+          toast.message(`Not found on ${platform}`);
+        }
+      } catch (e: any) {
+        toast.error(e?.message || `${platform} lookup failed`);
+      } finally {
+        setLcLoading(false);
       }
-    } catch (e: any) {
-      toast.error(e?.message || "LeetCode lookup failed");
-    } finally {
-      setLcLoading(false);
+    } else {
+      // Generic search for other platforms
+      const config = PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.Other;
+      window.open(config.searchUrl(title), "_blank");
     }
   };
 
@@ -331,11 +390,28 @@ export default function AddQuestion() {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Basics</h2>
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
-            <div className="flex gap-2">
-              <Input id="title" value={form.title} onChange={(e) => { update("title", e.target.value); setLcResult(null); setLeetcodeNumber(null); }} placeholder="Two Sum" required />
-              <Button type="button" variant="outline" onClick={lookupLeetCode} disabled={lcLoading} className="shrink-0">
-                {lcLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Search className="h-4 w-4 mr-1.5" /> Find on LeetCode</>}
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input id="title" value={form.title} onChange={(e) => { update("title", e.target.value); setLcResult(null); setLeetcodeNumber(null); }} placeholder="Two Sum" className="flex-1" required />
+              <div className="flex gap-2">
+                <Select value={form.platform} onValueChange={(v) => update("platform", v)}>
+                  <SelectTrigger className="w-[140px] shrink-0">
+                    <SelectValue placeholder="Platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLATFORMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" onClick={handleLookup} disabled={lcLoading} className="shrink-0 min-w-[140px]">
+                  {lcLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-1.5" /> 
+                      {form.platform === "LeetCode" ? "Find on LeetCode" : `Search on ${form.platform}`}
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
             {lcResult && lcResult.found && (
               <div className="flex items-center gap-2 text-sm rounded-md border border-border bg-muted/40 px-3 py-2">
@@ -350,7 +426,7 @@ export default function AddQuestion() {
             {lcResult && !lcResult.found && (
               <div className="flex items-center gap-2 text-sm rounded-md border border-border bg-muted/40 px-3 py-2 text-muted-foreground">
                 <XCircle className="h-4 w-4 shrink-0" />
-                <span>Not found in LeetCode</span>
+                <span>Not found in {form.platform}</span>
               </div>
             )}
             {duplicateInfo && (
@@ -396,13 +472,6 @@ export default function AddQuestion() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Platform</Label>
-              <Select value={form.platform} onValueChange={(v) => update("platform", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{PLATFORMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="link">Problem link</Label>
               <div className="flex gap-2">
                 <Input
@@ -410,7 +479,7 @@ export default function AddQuestion() {
                   type="url"
                   value={form.problem_link}
                   onChange={(e) => update("problem_link", e.target.value)}
-                  placeholder="https://leetcode.com/..."
+                  placeholder={PLATFORM_CONFIG[form.platform]?.placeholder || "https://..."}
                   className={leetcodeNumber && form.problem_link ? "border-success/60 focus-visible:ring-success/40 bg-success/5" : ""}
                 />
                 {form.problem_link && (
@@ -423,7 +492,7 @@ export default function AddQuestion() {
               </div>
               {leetcodeNumber && form.problem_link && (
                 <p className="text-xs text-success flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> Auto-filled from LeetCode #{leetcodeNumber}
+                  <CheckCircle2 className="h-3 w-3" /> Auto-filled from {(lcResult && "source" in lcResult) ? lcResult.source : "LeetCode"} #{leetcodeNumber}
                 </p>
               )}
             </div>

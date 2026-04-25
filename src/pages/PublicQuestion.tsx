@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { getPlatformPrefix } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -115,11 +116,13 @@ export default function PublicQuestion() {
               q.problem_link ? (
                 <a href={q.problem_link} target="_blank" rel="noopener noreferrer" className="inline-flex">
                   <Badge variant="outline" className="font-mono bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 cursor-pointer">
-                    LC #{q.leetcode_number} <ExternalLink className="h-3 w-3 ml-1" />
+                    {getPlatformPrefix(q.platform)} #{q.leetcode_number} <ExternalLink className="h-3 w-3 ml-1" />
                   </Badge>
                 </a>
               ) : (
-                <Badge variant="outline" className="font-mono bg-primary/10 text-primary border-primary/30">LC #{q.leetcode_number}</Badge>
+                <Badge variant="outline" className="font-mono bg-primary/10 text-primary border-primary/30">
+                  {getPlatformPrefix(q.platform)} #{q.leetcode_number}
+                </Badge>
               )
             )}
             <div className="text-xs text-muted-foreground ml-auto flex items-center gap-2">

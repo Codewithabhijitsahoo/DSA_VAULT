@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { getPlatformPrefix } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -291,10 +292,14 @@ export default function MyQuestions() {
                 {q.leetcode_number && (
                   q.problem_link ? (
                     <a href={q.problem_link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                      <Badge variant="outline" className="font-mono text-[10px] bg-primary/10 text-primary border-primary/30 hover:bg-primary/20">LC #{q.leetcode_number}</Badge>
+                      <Badge variant="outline" className="font-mono text-[10px] bg-primary/10 text-primary border-primary/30 hover:bg-primary/20">
+                        {getPlatformPrefix(q.platform)} #{q.leetcode_number}
+                      </Badge>
                     </a>
                   ) : (
-                    <Badge variant="outline" className="font-mono text-[10px] bg-primary/10 text-primary border-primary/30">LC #{q.leetcode_number}</Badge>
+                    <Badge variant="outline" className="font-mono text-[10px] bg-primary/10 text-primary border-primary/30">
+                      {getPlatformPrefix(q.platform)} #{q.leetcode_number}
+                    </Badge>
                   )
                 )}
                 {q.time_complexity && (
