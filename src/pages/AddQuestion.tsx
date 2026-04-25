@@ -89,7 +89,7 @@ const PATTERN_TOPICS = [
   "Other",
 ];
 
-const PLATFORMS = ["LeetCode", "HackerRank", "Codeforces", "GeeksforGeeks", "Coding Ninjas", "AtCoder", "InterviewBit", "CodeChef", "CSES", "Other"];
+const PLATFORMS = ["LeetCode", "HackerRank", "Codeforces", "GeeksforGeeks", "AtCoder"];
 
 const PLATFORM_CONFIG: Record<string, { placeholder: string; searchUrl: (title: string) => string }> = {
   LeetCode: {
@@ -115,22 +115,6 @@ const PLATFORM_CONFIG: Record<string, { placeholder: string; searchUrl: (title: 
   AtCoder: {
     placeholder: "https://atcoder.jp/contests/...",
     searchUrl: (t) => `https://atcoder.jp/contests/search?q=${encodeURIComponent(t)}`,
-  },
-  InterviewBit: {
-    placeholder: "https://www.interviewbit.com/problems/...",
-    searchUrl: (t) => `https://www.google.com/search?q=site:interviewbit.com+${encodeURIComponent(t)}`,
-  },
-  CodeChef: {
-    placeholder: "https://www.codechef.com/problems/...",
-    searchUrl: (t) => `https://www.codechef.com/search/problems?search=${encodeURIComponent(t)}`,
-  },
-  CSES: {
-    placeholder: "https://cses.fi/problemset/task/...",
-    searchUrl: (t) => `https://www.google.com/search?q=site:cses.fi+${encodeURIComponent(t)}`,
-  },
-  Other: {
-    placeholder: "https://...",
-    searchUrl: (t) => `https://www.google.com/search?q=${encodeURIComponent(t)}+dsa+problem`,
   },
 };
 
@@ -261,11 +245,13 @@ export default function AddQuestion() {
     }
 
     const platform = form.platform;
-    const supportedPlatforms = ["LeetCode", "Codeforces", "AtCoder"];
+    const supportedPlatforms = ["LeetCode", "Codeforces", "AtCoder", "HackerRank", "GeeksforGeeks"];
 
     if (supportedPlatforms.includes(platform)) {
       setLcLoading(true);
       setLcResult(null);
+      setLeetcodeNumber(null);
+      setForm((prev) => ({ ...prev, problem_link: "" }));
       try {
         const { data, error } = await supabase.functions.invoke("problem-lookup", {
           body: { title, platform },
@@ -292,9 +278,13 @@ export default function AddQuestion() {
         setLcLoading(false);
       }
     } else {
-      // Generic search for other platforms
-      const config = PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.Other;
-      window.open(config.searchUrl(title), "_blank");
+      // Generic search for other platforms (HackerRank, GeeksforGeeks)
+      const config = PLATFORM_CONFIG[platform];
+      if (config) {
+        window.open(config.searchUrl(title), "_blank");
+      } else {
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(title)}+dsa+problem`, "_blank");
+      }
     }
   };
 
