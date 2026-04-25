@@ -89,28 +89,24 @@ const PATTERN_TOPICS = [
   "Other",
 ];
 
-const PLATFORMS = ["LeetCode", "HackerRank", "Codeforces", "GeeksforGeeks", "AtCoder"];
+const PLATFORMS = ["LeetCode", "Codeforces", "HackerRank", "GeeksforGeeks", "AtCoder"];
 
 const PLATFORM_CONFIG: Record<string, { placeholder: string; searchUrl: (title: string) => string }> = {
   LeetCode: {
     placeholder: "https://leetcode.com/problems/...",
     searchUrl: (t) => `https://leetcode.com/problemset/?search=${encodeURIComponent(t)}`,
   },
-  HackerRank: {
-    placeholder: "https://www.hackerrank.com/challenges/...",
-    searchUrl: (t) => `https://www.google.com/search?q=site:hackerrank.com+${encodeURIComponent(t)}`,
-  },
   Codeforces: {
     placeholder: "https://codeforces.com/problemset/problem/...",
     searchUrl: (t) => `https://codeforces.com/problemset?query=${encodeURIComponent(t)}`,
   },
+  HackerRank: {
+    placeholder: "https://www.hackerrank.com/challenges/...",
+    searchUrl: (t) => `https://www.hackerrank.com/domains/algorithms?filters%5Btitle%5D=${encodeURIComponent(t)}`,
+  },
   GeeksforGeeks: {
     placeholder: "https://www.geeksforgeeks.org/problems/...",
     searchUrl: (t) => `https://www.geeksforgeeks.org/explore?page=1&sortBy=relevance&search=${encodeURIComponent(t)}`,
-  },
-  "Coding Ninjas": {
-    placeholder: "https://www.naukri.com/code360/problems/...",
-    searchUrl: (t) => `https://www.google.com/search?q=site:naukri.com/code360+${encodeURIComponent(t)}`,
   },
   AtCoder: {
     placeholder: "https://atcoder.jp/contests/...",
@@ -245,7 +241,7 @@ export default function AddQuestion() {
     }
 
     const platform = form.platform;
-    const supportedPlatforms = ["LeetCode", "Codeforces", "AtCoder", "HackerRank", "GeeksforGeeks"];
+    const supportedPlatforms = ["LeetCode", "Codeforces", "AtCoder"];
 
     if (supportedPlatforms.includes(platform)) {
       setLcLoading(true);

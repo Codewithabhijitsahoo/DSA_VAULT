@@ -22,17 +22,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, sess) => {
+      console.log("Auth event:", event, sess?.user?.id);
       setSession(sess);
       setUser(sess?.user ?? null);
       setLoading(false);
+
+      if (event === 'SIGNED_OUT') {
+        // Clear potential stale data
+        localStorage.removeItem('supabase.auth.token');
+      }
     });
 
-    supabase.auth.getSession().then(({ data: { session: sess } }) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      setLoading(false);
-    });
+    const initAuth = async () => {
+      try {
+        const { data: { session: sess }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        setSession(sess);
+        setUser(sess?.user ?? null);
+      } catch (err) {
+        console.error("Session recovery failed:", err);
+        setUser(null);
+        setSession(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
 
     return () => subscription.unsubscribe();
   }, []);

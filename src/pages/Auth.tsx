@@ -39,7 +39,13 @@ export default function Auth() {
     const { error } = await supabase.auth.signInWithPassword(signInData);
     setLoading(false);
     if (error) {
-      toast.error(error.message === "Invalid login credentials" ? "Wrong email or password" : error.message);
+      let errorMessage = error.message;
+      if (error.message === "Invalid login credentials") {
+        errorMessage = "Wrong email or password";
+      } else if (error.message.toLowerCase().includes("limit") || error.status === 429) {
+        errorMessage = "Sign-in limit reached. Please wait a bit before trying again.";
+      }
+      toast.error(errorMessage);
       return;
     }
     toast.success("Welcome back!");
@@ -68,7 +74,13 @@ export default function Auth() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message.includes("already") ? "Email already registered. Try signing in." : error.message);
+      let errorMessage = error.message;
+      if (error.message.includes("already")) {
+        errorMessage = "Email already registered. Try signing in.";
+      } else if (error.message.toLowerCase().includes("limit") || error.status === 429) {
+        errorMessage = "Signup limit reached. Please wait a bit before trying again.";
+      }
+      toast.error(errorMessage);
       return;
     }
     toast.success("Account created! Please check your email to confirm your account before signing in.");

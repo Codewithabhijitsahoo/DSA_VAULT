@@ -2,19 +2,19 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Brain, Code2, Search, Sparkles, BookOpen, Zap, ArrowRight,
-  Target, TrendingUp, Layers, CheckCircle2, PlayCircle,
+  Brain, Code2, Sparkles, BookOpen, Zap, ArrowRight,
+  Target, CheckCircle2, PlayCircle, Globe,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { AnimatedBackground } from "@/components/landing/AnimatedBackground";
 
 const FEATURES = [
-  { icon: Code2, title: "Monaco Code Editor", desc: "VS Code-grade editor with syntax highlighting for Python, Java, C++, and JavaScript." },
-  { icon: Search, title: "Powerful Search", desc: "Find any solution by topic, tag, difficulty, platform, or status — instantly." },
-  { icon: Sparkles, title: "Smart Revision", desc: "Mark questions for revisit. Surface weak topics. Never forget what you learned." },
-  { icon: BookOpen, title: "Personal Notes", desc: "Capture patterns, tricks, and interview tips alongside your solutions." },
-  { icon: Layers, title: "Topic & Pattern Tags", desc: "Organize by data structures (Stack, Trees) and patterns (Sliding Window, DP)." },
-  { icon: TrendingUp, title: "Progress Dashboard", desc: "Track totals, weak areas, and your daily learning streak at a glance." },
+  { icon: Zap, title: "Auto-Fetch Metadata", desc: "Paste a link from LeetCode, Codeforces, or GFG. We'll automatically pull the title, difficulty, and tags for you." },
+  { icon: Sparkles, title: "SM-2 Spaced Repetition", desc: "Our revision queue uses the SM-2 algorithm to surface questions exactly when you're about to forget them." },
+  { icon: Globe, title: "Public Community Feed", desc: "Explore thousands of solutions shared by other students. Practice directly from the library and track your mastery." },
+  { icon: Target, title: "Private Practice Tracker", desc: "Record every time you solve a problem. Build a history of your consistency and watch your skills grow." },
+  { icon: Code2, title: "Monaco Code Editor", desc: "A world-class coding experience with syntax highlighting for Python, Java, C++, and JavaScript." },
+  { icon: BookOpen, title: "Second Brain Notes", desc: "Capture patterns, tricks, and interview insights alongside your code. Built for deep learning." },
 ];
 
 const STEPS = [
@@ -73,12 +73,12 @@ export default function Landing() {
         </div>
 
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 animate-fade-in">
-          Your personal <br />
-          <span className="text-gradient">DSA memory vault.</span>
+          The ultimate <br />
+          <span className="text-gradient">DSA practice hub.</span>
         </h1>
 
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in">
-          Save every problem, solution, and insight you learn. Revise smarter with a searchable knowledge base built for interview prep — so you never forget what you've solved.
+          Save your solutions, collaborate with the community, and master algorithms with spaced repetition. Your complete second brain for coding interview preparation.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in">
@@ -106,6 +106,18 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      {/* Logos */}
+      <div className="relative z-10 border-y border-border/50 bg-card/20 backdrop-blur-sm py-10">
+        <div className="container mx-auto px-6">
+          <p className="text-center text-xs uppercase tracking-[0.2em] text-muted-foreground mb-8 font-semibold">Supported Platforms</p>
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+            {["LeetCode", "Codeforces", "AtCoder", "HackerRank", "GeeksforGeeks"].map((p) => (
+              <span key={p} className="text-xl md:text-2xl font-bold tracking-tight text-foreground/80">{p}</span>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* What is it */}
       <section className="relative z-10 container mx-auto px-6 py-20">

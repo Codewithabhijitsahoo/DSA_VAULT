@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { DifficultyBadge } from "@/components/StatusBadges";
 import { Sparkles, ArrowRight, TrendingDown, Brain } from "lucide-react";
 import { toast } from "sonner";
+import { calculateNextRevision, RATINGS } from "@/lib/revision";
 
 export default function Revision() {
   const { user } = useAuth();
@@ -16,9 +17,11 @@ export default function Revision() {
 
   const load = async () => {
     if (!user) return;
-    const { data } = await supabase.from("questions").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("questions").select("*").eq("user_id", user.id).order("next_review_at", { ascending: true });
     setAllItems(data ?? []);
-    setItems((data ?? []).filter((q) => q.needs_revision));
+    // Show items that are either marked as needs_revision OR whose next_review_at is now/past
+    const now = new Date().toISOString();
+    setItems((data ?? []).filter((q) => q.needs_revision || (q.next_review_at && q.next_review_at <= now)));
   };
 
   useEffect(() => { load(); }, [user]);
@@ -29,19 +32,26 @@ export default function Revision() {
       const t = q.topic ?? "Other";
       if (!counts[t]) counts[t] = { revision: 0, total: 0 };
       counts[t].total++;
-      if (q.needs_revision) counts[t].revision++;
+      if (items.some(i => i.id === q.id)) counts[t].revision++;
     });
     return Object.entries(counts)
       .map(([topic, v]) => ({ topic, ...v, ratio: v.revision / v.total }))
       .filter((t) => t.revision > 0)
       .sort((a, b) => b.ratio - a.ratio)
       .slice(0, 6);
-  }, [allItems]);
+  }, [allItems, items]);
 
-  const markDone = async (id: string) => {
-    await supabase.from("questions").update({ needs_revision: false }).eq("id", id);
+  const handleRate = async (id: string, ratingValue: number) => {
+    const update = calculateNextRevision(ratingValue);
+    const { error } = await supabase.from("questions").update(update).eq("id", id);
+    
+    if (error) {
+      toast.error("Failed to update revision");
+      return;
+    }
+
     setItems((prev) => prev.filter((p) => p.id !== id));
-    toast.success("Marked as revised!");
+    toast.success("Scheduled for next revision!");
   };
 
   return (
@@ -98,9 +108,21 @@ export default function Revision() {
                     {q.topic && <Badge variant="secondary" className="text-[10px]">{q.topic}</Badge>}
                   </div>
                 </Link>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button size="sm" variant="outline" onClick={() => markDone(q.id)}>Mark revised</Button>
-                  <Button size="sm" asChild><Link to={`/questions/${q.id}`}>Review <ArrowRight className="h-3 w-3 ml-1" /></Link></Button>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border border-border">
+                    {RATINGS.map((r) => (
+                      <Button
+                        key={r.value}
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRate(q.id, r.value)}
+                        className={`h-8 px-2 text-[10px] sm:text-xs font-semibold hover:${r.color.replace("text-", "bg-")}/10 ${r.color}`}
+                      >
+                        {r.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button size="sm" asChild className="gradient-hero"><Link to={`/questions/${q.id}`}>Review <ArrowRight className="h-3 w-3 ml-1" /></Link></Button>
                 </div>
               </Card>
             ))}

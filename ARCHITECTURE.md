@@ -18,7 +18,7 @@ Revise Wise Zone is a feature-rich web application designed to help users track 
 - **Platform**: [Supabase](https://supabase.com/)
 - **Database**: PostgreSQL
 - **Authentication**: Supabase Auth (Email/Password, Social)
-- **Edge Functions**: Deno-based serverless functions for external API integrations (e.g., LeetCode lookup)
+- **Edge Functions**: Deno-based serverless functions for external API integrations (e.g., platform problem lookup)
 - **Storage**: Supabase Storage for assets (if any)
 
 ## Project Structure
@@ -35,7 +35,7 @@ Revise Wise Zone is a feature-rich web application designed to help users track 
 │   ├── App.tsx           # Main App component with routing and providers
 │   └── main.tsx          # Application entry point
 ├── supabase/
-│   ├── functions/        # Supabase Edge Functions (e.g., leetcode-lookup)
+│   ├── functions/        # Supabase Edge Functions (e.g., problem-lookup)
 │   ├── migrations/       # SQL migration files for database schema
 │   └── config.toml       # Supabase configuration
 ├── public/               # Static assets
@@ -68,9 +68,9 @@ Revise Wise Zone is a feature-rich web application designed to help users track 
 - Uses Supabase Auth to manage user sessions.
 - `AuthProvider` wraps the application to provide user context.
 
-### 2. LeetCode Integration
-- An Edge Function (`supabase/functions/leetcode-lookup`) interacts with the LeetCode GraphQL API.
-- Allows users to search for questions by title and auto-fill details like difficulty and problem URL.
+### 2. Multi-Platform Integration
+- An Edge Function (`supabase/functions/problem-lookup`) interacts with various platforms (LeetCode, Codeforces, AtCoder).
+- Allows users to search for questions by title and auto-fill details like difficulty and problem URL from supported platforms.
 
 ### 3. Study Tracking (Practice Tracker)
 - Tracks user practice counts for questions.

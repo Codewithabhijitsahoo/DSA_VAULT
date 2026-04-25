@@ -157,6 +157,32 @@ async function lookupAtCoder(title: string): Promise<Question | null> {
   };
 }
 
+async function lookupHackerRank(title: string): Promise<Question | null> {
+  const res = await fetch(`https://www.hackerrank.com/rest/contests/master/tracks/algorithms/challenges?page=1&limit=10&filters%5Btitle%5D=${encodeURIComponent(title)}`, {
+    headers: { "Accept": "application/json" }
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const challenges = data?.models || [];
+  
+  let best: any = null;
+  let bestScore = 0;
+  for (const c of challenges) {
+    const s = similarity(title, c.name);
+    if (s > bestScore) { bestScore = s; best = c; }
+  }
+
+  if (!best || bestScore < 0.4) return null;
+
+  return {
+    title: best.name,
+    url: `https://www.hackerrank.com/challenges/${best.slug}/problem`,
+    questionNumber: best.slug,
+    difficulty: best.difficulty_name?.toLowerCase() || "medium",
+    source: "HackerRank",
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -168,6 +194,7 @@ serve(async (req) => {
     if (platform === "LeetCode") result = await lookupLeetCode(title);
     else if (platform === "Codeforces") result = await lookupCodeforces(title);
     else if (platform === "AtCoder") result = await lookupAtCoder(title);
+    else if (platform === "HackerRank") result = await lookupHackerRank(title);
 
     if (result) {
       return new Response(JSON.stringify({ found: true, ...result }), {
