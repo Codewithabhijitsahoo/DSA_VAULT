@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getPlatformPrefix } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +61,7 @@ export default function TcsPrep() {
   const [loading, setLoading] = useState(true);
   const [practices, setPractices] = useState<Record<string, number>>({});
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -76,28 +76,36 @@ export default function TcsPrep() {
       setItems((data ?? []) as Q[]);
 
       // Fetch practice counts
-      const { data: practiceData } = await (supabase as any)
+      const { data: practiceData } = await (supabase as unknown as {
+        from: (table: string) => {
+          select: (columns: string) => {
+            eq: (column: string, value: string) => Promise<{
+              data: Array<{ question_id: string; count: number }> | null;
+            }>;
+          };
+        };
+      })
         .from("user_practices")
         .select("question_id, count")
         .eq("user_id", user.id);
       
       if (practiceData) {
         const map: Record<string, number> = {};
-        practiceData.forEach((p: any) => {
+        practiceData.forEach((p) => {
           if (p.question_id) map[p.question_id] = p.count || 0;
         });
         setPractices(map);
       }
-    } catch (e: any) {
-      toast.error("Error loading TCS questions: " + e.message);
+    } catch (e: unknown) {
+      toast.error("Error loading TCS questions: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     load();
-  }, [user]);
+  }, [load]);
 
   const stats = useMemo(() => {
     const total = items.length;
@@ -170,7 +178,14 @@ export default function TcsPrep() {
     const current = practices[qId] || 0;
     const next = current + 1;
 
-    const { error } = await (supabase as any)
+    const { error } = await (supabase as unknown as {
+      from: (table: string) => {
+        upsert: (
+          data: { user_id: string; question_id: string; count: number; updated_at: string },
+          options: { onConflict: string }
+        ) => Promise<{ error: Error | null }>;
+      };
+    })
       .from("user_practices")
       .upsert({
         user_id: user.id,
