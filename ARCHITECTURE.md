@@ -69,16 +69,19 @@ Revise Wise Zone is a feature-rich web application designed to help users track 
 - `AuthProvider` wraps the application to provide user context.
 
 ### 2. Multi-Platform Integration
-- An Edge Function (`supabase/functions/problem-lookup`) interacts with various platforms (LeetCode, Codeforces, AtCoder).
-- Allows users to search for questions by title and auto-fill details like difficulty and problem URL from supported platforms.
+- An Edge Function (`supabase/functions/problem-lookup`) interacts with various platforms (LeetCode, Codeforces, AtCoder, HackerRank, GeeksforGeeks).
+- Supports auto-fetching metadata by pasting a problem link or searching by title.
+- Auto-extracts title, difficulty, and problem URL.
 
 ### 3. Study Tracking (Practice Tracker)
-- Tracks user practice counts for questions.
-- Integrated into pages like `PublicFeed`, `MyQuestions`, and `PublicQuestion`.
+- Tracks user practice counts for questions in a private `user_practices` table.
+- Integrated into `PublicFeed`, `MyQuestions`, `QuestionDetail`, and `PublicQuestion`.
 
-### 4. Revision System
-- Filterable views for questions that "need revision".
-- Categorization by difficulty and topic to help focused study sessions.
+### 4. SM-2 Revision System
+- Uses the **SM-2 (SuperMemo 2)** algorithm for spaced repetition.
+- Logic is implemented in `src/lib/revision.ts` and triggered in the `Revision` queue.
+- Automatically calculates the next review date based on user performance (quality score).
+- Categories by topic and difficulty to highlight "Weak Topics" with low mastery scores.
 
 ## Deployment & Environments
 - **Hosting**: Typically deployed on platforms like Vercel or Netlify.

@@ -17,8 +17,8 @@ import QuestionDetail from "./pages/QuestionDetail";
 import PublicQuestion from "./pages/PublicQuestion";
 import PublicFeed from "./pages/PublicFeed";
 import Notes from "./pages/Notes";
-import Revision from "./pages/Revision";
 import Settings from "./pages/Settings";
+import TcsPrep from "./pages/TcsPrep";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,8 +48,8 @@ const App = () => (
               <Route path="/share/:id" element={<PublicQuestion />} />
               <Route path="/public" element={<Protected><PublicFeed /></Protected>} />
               <Route path="/notes" element={<Protected><Notes /></Protected>} />
-              <Route path="/revision" element={<Protected><Revision /></Protected>} />
               <Route path="/settings" element={<Protected><Settings /></Protected>} />
+              <Route path="/tcs" element={<Protected><TcsPrep /></Protected>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

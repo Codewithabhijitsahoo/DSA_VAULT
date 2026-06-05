@@ -93,10 +93,6 @@ export type Database = {
           time_complexity: string | null
           title: string
           topic: string | null
-          next_review_at: string | null
-          mastery_score: number | null
-          repetition_count: number | null
-          ease_factor: number | null
           updated_at: string
           user_id: string
         }
@@ -121,10 +117,6 @@ export type Database = {
           time_complexity?: string | null
           title: string
           topic?: string | null
-          next_review_at?: string | null
-          mastery_score?: number | null
-          repetition_count?: number | null
-          ease_factor?: number | null
           updated_at?: string
           user_id: string
         }
@@ -149,10 +141,6 @@ export type Database = {
           time_complexity?: string | null
           title?: string
           topic?: string | null
-          next_review_at?: string | null
-          mastery_score?: number | null
-          repetition_count?: number | null
-          ease_factor?: number | null
           updated_at?: string
           user_id?: string
         }

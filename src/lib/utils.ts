@@ -16,5 +16,6 @@ export function getPlatformPrefix(platform: string | null) {
   if (p.includes("interviewbit")) return "IB";
   if (p.includes("cses")) return "CSES";
   if (p.includes("coding ninjas")) return "CN";
+  if (p.includes("tcs")) return "TCS";
   return "PB"; // Problem
 }

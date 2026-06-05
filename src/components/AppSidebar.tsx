@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, BookOpen, PlusCircle, ListChecks, StickyNote, Sparkles, Settings as SettingsIcon, Brain, Globe } from "lucide-react";
+import { LayoutDashboard, BookOpen, PlusCircle, ListChecks, StickyNote, Settings as SettingsIcon, Brain, Globe } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +17,7 @@ const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Add Question", url: "/add", icon: PlusCircle },
   { title: "My Questions", url: "/questions", icon: ListChecks },
+  { title: "TCS Prep", url: "/tcs", icon: BookOpen },
   { title: "Public Library", url: "/public", icon: Globe },
   { title: "Notes", url: "/notes", icon: StickyNote },
 ];

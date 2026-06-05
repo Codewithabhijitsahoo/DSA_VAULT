@@ -10,7 +10,7 @@ import { AnimatedBackground } from "@/components/landing/AnimatedBackground";
 
 const FEATURES = [
   { icon: Zap, title: "Auto-Fetch Metadata", desc: "Paste a link from LeetCode, Codeforces, or GFG. We'll automatically pull the title, difficulty, and tags for you." },
-  { icon: Sparkles, title: "SM-2 Spaced Repetition", desc: "Our revision queue uses the SM-2 algorithm to surface questions exactly when you're about to forget them." },
+  { icon: Sparkles, title: "Revision Queue", desc: "Mark tough questions for revision and focus on your weak topics whenever you need to prepare." },
   { icon: Globe, title: "Public Community Feed", desc: "Explore thousands of solutions shared by other students. Practice directly from the library and track your mastery." },
   { icon: Target, title: "Private Practice Tracker", desc: "Record every time you solve a problem. Build a history of your consistency and watch your skills grow." },
   { icon: Code2, title: "Monaco Code Editor", desc: "A world-class coding experience with syntax highlighting for Python, Java, C++, and JavaScript." },

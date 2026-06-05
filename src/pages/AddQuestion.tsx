@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -86,10 +86,11 @@ const PATTERN_TOPICS = [
   "Monotonic Stack",
   "Monotonic Queue",
   "Kadane's Algorithm",
+  "TCS Pattern",
   "Other",
 ];
 
-const PLATFORMS = ["LeetCode", "Codeforces", "HackerRank", "GeeksforGeeks", "AtCoder"];
+const PLATFORMS = ["LeetCode", "Codeforces", "HackerRank", "GeeksforGeeks", "AtCoder", "TCS"];
 
 const PLATFORM_CONFIG: Record<string, { placeholder: string; searchUrl: (title: string) => string }> = {
   LeetCode: {
@@ -112,12 +113,17 @@ const PLATFORM_CONFIG: Record<string, { placeholder: string; searchUrl: (title: 
     placeholder: "https://atcoder.jp/contests/...",
     searchUrl: (t) => `https://atcoder.jp/contests/search?q=${encodeURIComponent(t)}`,
   },
+  TCS: {
+    placeholder: "e.g. TCS CodeVita / NQT / Prep link...",
+    searchUrl: (t) => `https://www.google.com/search?q=${encodeURIComponent(t)}+tcs+coding+question`,
+  },
 };
 
 export default function AddQuestion() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const editing = Boolean(id);
 
   const [loading, setLoading] = useState(false);
@@ -188,6 +194,32 @@ export default function AddQuestion() {
   }, [id, editing]);
 
   useEffect(() => {
+    if (editing) return;
+    const defaultPlatform = searchParams.get("platform");
+    const defaultTitle = searchParams.get("title");
+    const defaultDifficulty = searchParams.get("difficulty");
+    const defaultStatement = searchParams.get("statement");
+
+    setForm((prev) => {
+      const updated = { ...prev };
+      if (defaultPlatform) {
+        const matched = PLATFORMS.find(p => p.toLowerCase() === defaultPlatform.toLowerCase());
+        if (matched) updated.platform = matched;
+      }
+      if (defaultTitle) {
+        updated.title = defaultTitle;
+      }
+      if (defaultDifficulty && ["easy", "medium", "hard"].includes(defaultDifficulty)) {
+        updated.difficulty = defaultDifficulty as "easy" | "medium" | "hard";
+      }
+      if (defaultStatement) {
+        updated.problem_statement = defaultStatement;
+      }
+      return updated;
+    });
+  }, [searchParams, editing]);
+
+  useEffect(() => {
     const title = form.title.trim();
     if (title.length < 3) {
       setDuplicateInfo(null);
@@ -233,21 +265,55 @@ export default function AddQuestion() {
 
   const update = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
 
-  const handleLookup = async () => {
-    const title = form.title.trim();
+  const handleLinkPaste = async (url: string) => {
+    update("problem_link", url);
+    if (!url) return;
+
+    let platform = "";
+    if (url.includes("leetcode.com")) platform = "LeetCode";
+    else if (url.includes("codeforces.com")) platform = "Codeforces";
+    else if (url.includes("hackerrank.com")) platform = "HackerRank";
+    else if (url.includes("geeksforgeeks.org")) platform = "GeeksforGeeks";
+    else if (url.includes("atcoder.jp")) platform = "AtCoder";
+
+    if (platform) {
+      update("platform", platform);
+      // If title is empty, we try to guess it from URL
+      if (!form.title) {
+        let slug = "";
+        try {
+          const parts = url.split("/");
+          if (platform === "LeetCode") slug = parts[parts.indexOf("problems") + 1];
+          else if (platform === "GeeksforGeeks") slug = parts[parts.indexOf("problems") + 1];
+          else if (platform === "HackerRank") slug = parts[parts.indexOf("challenges") + 1];
+          
+          if (slug) {
+            const guessedTitle = slug.split("-").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
+            update("title", guessedTitle);
+            // Trigger lookup with the guessed title and platform
+            setTimeout(() => handleLookup(guessedTitle, platform), 100);
+          }
+        } catch (e) {}
+      } else {
+        handleLookup(form.title, platform);
+      }
+    }
+  };
+
+  const handleLookup = async (titleOverride?: string, platformOverride?: string) => {
+    const title = titleOverride || form.title.trim();
     if (title.length < 2) {
       toast.error("Enter a question title first");
       return;
     }
 
-    const platform = form.platform;
-    const supportedPlatforms = ["LeetCode", "Codeforces", "AtCoder"];
+    const platform = platformOverride || form.platform;
+    const supportedPlatforms = ["LeetCode", "Codeforces", "AtCoder", "HackerRank", "GeeksforGeeks"];
 
     if (supportedPlatforms.includes(platform)) {
       setLcLoading(true);
       setLcResult(null);
       setLeetcodeNumber(null);
-      setForm((prev) => ({ ...prev, problem_link: "" }));
       try {
         const { data, error } = await supabase.functions.invoke("problem-lookup", {
           body: { title, platform },
@@ -258,6 +324,7 @@ export default function AddQuestion() {
           setLeetcodeNumber(data.questionNumber);
           setForm((prev) => ({ 
             ...prev, 
+            title: prev.title || data.title,
             problem_link: data.url, 
             platform: data.source,
             difficulty: data.difficulty as any,
@@ -274,7 +341,7 @@ export default function AddQuestion() {
         setLcLoading(false);
       }
     } else {
-      // Generic search for other platforms (HackerRank, GeeksforGeeks)
+      // Generic search for other platforms
       const config = PLATFORM_CONFIG[platform];
       if (config) {
         window.open(config.searchUrl(title), "_blank");
@@ -387,7 +454,7 @@ export default function AddQuestion() {
                     {PLATFORMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button type="button" variant="outline" onClick={handleLookup} disabled={lcLoading} className="shrink-0 min-w-[140px]">
+                <Button type="button" variant="outline" onClick={() => handleLookup()} disabled={lcLoading} className="shrink-0 min-w-[140px]">
                   {lcLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -464,7 +531,7 @@ export default function AddQuestion() {
                   id="link"
                   type="url"
                   value={form.problem_link}
-                  onChange={(e) => update("problem_link", e.target.value)}
+                  onChange={(e) => handleLinkPaste(e.target.value)}
                   placeholder={PLATFORM_CONFIG[form.platform]?.placeholder || "https://..."}
                   className={leetcodeNumber && form.problem_link ? "border-success/60 focus-visible:ring-success/40 bg-success/5" : ""}
                 />

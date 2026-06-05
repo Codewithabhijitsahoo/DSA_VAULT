@@ -29,7 +29,7 @@ interface Question {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ total: 0, solved: 0, pending: 0, publicTotal: 0 });
+  const [stats, setStats] = useState({ total: 0, solved: 0, pending: 0, publicTotal: 0, revisionCount: 0 });
   const [recent, setRecent] = useState<Question[]>([]);
   const [practices, setPractices] = useState<Record<string, number>>({});
   const [search, setSearch] = useState("");
@@ -41,7 +41,7 @@ export default function Dashboard() {
 
     const load = async () => {
       const [{ data: qs }, { data: profile }, { count: publicCount }] = await Promise.all([
-        supabase.from("questions").select("id,title,topic,difficulty,status,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("questions").select("id,title,topic,difficulty,status,created_at,needs_revision").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle(),
         supabase.from("questions").select("*", { count: "exact", head: true }).eq("is_public", true),
       ]);
@@ -52,6 +52,7 @@ export default function Dashboard() {
         solved: all.filter((q) => q.status === "solved").length,
         pending: all.filter((q) => q.status === "pending").length,
         publicTotal: publicCount ?? 0,
+        revisionCount: all.filter((q: any) => q.needs_revision).length
       });
       setRecent(all.slice(0, 5) as Question[]);
       setName(profile?.display_name ?? user.email?.split("@")[0] ?? "there");
@@ -95,9 +96,11 @@ export default function Dashboard() {
           </h1>
           <p className="text-muted-foreground mt-1">Here's what's in your vault today.</p>
         </div>
-        <Button asChild className="gradient-hero text-primary-foreground hover:opacity-90 shadow-glow">
-          <Link to="/add"><PlusCircle className="h-4 w-4 mr-1.5" /> Save new question</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild className="gradient-hero text-primary-foreground hover:opacity-90 shadow-glow">
+            <Link to="/add"><PlusCircle className="h-4 w-4 mr-1.5" /> Save new question</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Search */}

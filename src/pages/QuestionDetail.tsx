@@ -7,17 +7,20 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CodeEditor } from "@/components/CodeEditor";
 import { DifficultyBadge, StatusBadge } from "@/components/StatusBadges";
-import { ArrowLeft, ExternalLink, Edit3, Star, Sparkles, Loader2, Globe, Lock, Copy, Check } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit3, Star, Sparkles, Loader2, Globe, Lock, Copy, Check, RotateCw } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export default function QuestionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [q, setQ] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [togglingPublic, setTogglingPublic] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [practiceCount, setPracticeCount] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -25,7 +28,19 @@ export default function QuestionDetail() {
       setQ(data);
       setLoading(false);
     });
-  }, [id]);
+
+    if (user) {
+      (supabase as any)
+        .from("user_practices")
+        .select("count")
+        .eq("user_id", user.id)
+        .eq("question_id", id)
+        .maybeSingle()
+        .then(({ data }: any) => {
+          if (data) setPracticeCount(data.count);
+        });
+    }
+  }, [id, user]);
 
   const togglePublic = async () => {
     if (!q) return;
@@ -39,6 +54,24 @@ export default function QuestionDetail() {
     }
     setQ({ ...q, is_public: next });
     toast.success(next ? "Question is now public — share the link!" : "Question is now private");
+  };
+
+  const handlePractice = async () => {
+    if (!user || !id) return;
+    const next = practiceCount + 1;
+    const { error } = await (supabase as any)
+      .from("user_practices")
+      .upsert({
+        user_id: user.id,
+        question_id: id,
+        count: next,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id,question_id' });
+    
+    if (!error) {
+      setPracticeCount(next);
+      toast.success("Practice recorded!");
+    }
   };
 
   const copyShareLink = async () => {
@@ -108,6 +141,14 @@ export default function QuestionDetail() {
           )}
           <Button size="sm" asChild>
             <Link to={`/edit/${q.id}`}><Edit3 className="h-3.5 w-3.5 mr-1.5" /> Edit</Link>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handlePractice}
+            className="border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-semibold"
+          >
+            <RotateCw className="h-3.5 w-3.5 mr-1.5" /> Practice {practiceCount > 0 && `(${practiceCount})`}
           </Button>
           <Button
             size="sm"
