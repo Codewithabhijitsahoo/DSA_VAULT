@@ -12,9 +12,30 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+interface PublicQDetail {
+  id: string;
+  title: string;
+  topic: string | null;
+  difficulty: "easy" | "medium" | "hard" | null;
+  status: "solved" | "pending" | "revisit" | null;
+  platform: string | null;
+  problem_link: string | null;
+  leetcode_number: string | null;
+  created_at: string;
+  problem_statement: string | null;
+  answer: string | null;
+  explanation: string | null;
+  code: string | null;
+  language: string | null;
+  time_complexity: string | null;
+  space_complexity: string | null;
+  tags: string[] | null;
+  profiles: { display_name: string | null } | null;
+}
+
 export default function PublicQuestion() {
   const { id } = useParams();
-  const [q, setQ] = useState<any>(null);
+  const [q, setQ] = useState<PublicQDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [practiceCount, setPracticeCount] = useState(0);
   const { user } = useAuth();
@@ -28,21 +49,53 @@ export default function PublicQuestion() {
       .eq("is_public", true)
       .maybeSingle()
       .then(({ data }) => {
-        setQ(data);
+        if (data) {
+          let displayName: string | null = null;
+          if (data.profiles) {
+            if (Array.isArray(data.profiles)) {
+              displayName = data.profiles[0]?.display_name ?? null;
+            } else {
+              displayName = (data.profiles as { display_name: string | null }).display_name;
+            }
+          }
+          const mapped: PublicQDetail = {
+            id: data.id,
+            title: data.title,
+            topic: data.topic,
+            difficulty: data.difficulty as "easy" | "medium" | "hard" | null,
+            status: data.status as "solved" | "pending" | "revisit" | null,
+            platform: data.platform,
+            problem_link: data.problem_link,
+            leetcode_number: data.leetcode_number,
+            created_at: data.created_at,
+            problem_statement: data.problem_statement,
+            answer: data.answer,
+            explanation: data.explanation,
+            code: data.code,
+            language: data.language,
+            time_complexity: data.time_complexity,
+            space_complexity: data.space_complexity,
+            tags: data.tags,
+            profiles: displayName ? { display_name: displayName } : null
+          };
+          setQ(mapped);
+        } else {
+          setQ(null);
+        }
         setLoading(false);
       });
   }, [id]);
 
   useEffect(() => {
     if (!id || !user) return;
-    (supabase as any)
+    supabase
       .from("user_practices")
       .select("count")
       .eq("user_id", user.id)
       .eq("question_id", id)
       .maybeSingle()
-      .then(({ data }: any) => {
-        if (data) setPracticeCount(data.count);
+      .then(({ data }) => {
+        if (data && data.count !== null) setPracticeCount(data.count);
       });
   }, [id, user]);
 
@@ -52,7 +105,7 @@ export default function PublicQuestion() {
       return;
     }
     const next = practiceCount + 1;
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("user_practices")
       .upsert({
         user_id: user.id,

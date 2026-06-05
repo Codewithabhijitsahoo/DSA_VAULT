@@ -48,18 +48,45 @@ export default function PublicFeed() {
         .select("id,title,topic,difficulty,platform,problem_link,tags,leetcode_number,created_at, profiles(display_name)")
         .eq("is_public", true)
         .order("created_at", { ascending: false });
-      setItems((data ?? []) as any[]);
+
+      if (data) {
+        const typedData: PublicQ[] = data.map((q) => {
+          let displayName: string | null = null;
+          if (q.profiles) {
+            if (Array.isArray(q.profiles)) {
+              displayName = q.profiles[0]?.display_name ?? null;
+            } else {
+              displayName = (q.profiles as { display_name: string | null }).display_name;
+            }
+          }
+          return {
+            id: q.id,
+            title: q.title,
+            topic: q.topic,
+            difficulty: (q.difficulty as "easy" | "medium" | "hard") || "easy",
+            platform: q.platform,
+            problem_link: q.problem_link,
+            tags: q.tags,
+            leetcode_number: q.leetcode_number,
+            created_at: q.created_at,
+            profiles: displayName ? { display_name: displayName } : undefined,
+          };
+        });
+        setItems(typedData);
+      } else {
+        setItems([]);
+      }
 
       if (user) {
-        const { data: pData } = await (supabase as any)
+        const { data: pData } = await supabase
           .from("user_practices")
           .select("question_id, count")
           .eq("user_id", user.id);
         
         if (pData) {
           const map: Record<string, number> = {};
-          pData.forEach((p: any) => {
-            if (p.question_id) map[p.question_id] = p.count;
+          pData.forEach((p) => {
+            if (p.question_id && p.count !== null) map[p.question_id] = p.count;
           });
           setPractices(map);
         }
@@ -81,7 +108,7 @@ export default function PublicFeed() {
     const current = practices[qId] || 0;
     const next = current + 1;
     
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("user_practices")
       .upsert({ 
         user_id: user.id, 

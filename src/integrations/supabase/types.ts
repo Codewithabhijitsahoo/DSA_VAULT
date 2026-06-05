@@ -77,16 +77,20 @@ export type Database = {
           code: string | null
           created_at: string
           difficulty: Database["public"]["Enums"]["difficulty_level"] | null
+          ease_factor: number | null
           explanation: string | null
           id: string
           is_favorite: boolean | null
           is_public: boolean
           language: string | null
           leetcode_number: string | null
+          mastery_score: number | null
           needs_revision: boolean | null
+          next_review_at: string | null
           platform: string | null
           problem_link: string | null
           problem_statement: string | null
+          repetition_count: number | null
           space_complexity: string | null
           status: Database["public"]["Enums"]["question_status"] | null
           tags: string[] | null
@@ -101,16 +105,20 @@ export type Database = {
           code?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
+          ease_factor?: number | null
           explanation?: string | null
           id?: string
           is_favorite?: boolean | null
           is_public?: boolean
           language?: string | null
           leetcode_number?: string | null
+          mastery_score?: number | null
           needs_revision?: boolean | null
+          next_review_at?: string | null
           platform?: string | null
           problem_link?: string | null
           problem_statement?: string | null
+          repetition_count?: number | null
           space_complexity?: string | null
           status?: Database["public"]["Enums"]["question_status"] | null
           tags?: string[] | null
@@ -125,16 +133,20 @@ export type Database = {
           code?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
+          ease_factor?: number | null
           explanation?: string | null
           id?: string
           is_favorite?: boolean | null
           is_public?: boolean
           language?: string | null
           leetcode_number?: string | null
+          mastery_score?: number | null
           needs_revision?: boolean | null
+          next_review_at?: string | null
           platform?: string | null
           problem_link?: string | null
           problem_statement?: string | null
+          repetition_count?: number | null
           space_complexity?: string | null
           status?: Database["public"]["Enums"]["question_status"] | null
           tags?: string[] | null
@@ -144,7 +156,47 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_questions_profiles"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_practices: {
+        Row: {
+          count: number | null
+          id: string
+          question_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          count?: number | null
+          id?: string
+          question_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          count?: number | null
+          id?: string
+          question_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_practices_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

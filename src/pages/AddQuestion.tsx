@@ -293,7 +293,9 @@ export default function AddQuestion() {
             // Trigger lookup with the guessed title and platform
             setTimeout(() => handleLookup(guessedTitle, platform), 100);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.debug("Failed to guess title from URL", e);
+        }
       } else {
         handleLookup(form.title, platform);
       }
@@ -327,7 +329,7 @@ export default function AddQuestion() {
             title: prev.title || data.title,
             problem_link: data.url, 
             platform: data.source,
-            difficulty: data.difficulty as any,
+            difficulty: data.difficulty as "easy" | "medium" | "hard",
           }));
           toast.success(`Found on ${data.source}: #${data.questionNumber} ${data.title}`);
         } else {
@@ -335,8 +337,9 @@ export default function AddQuestion() {
           setLeetcodeNumber(null);
           toast.message(`Not found on ${platform}`);
         }
-      } catch (e: any) {
-        toast.error(e?.message || `${platform} lookup failed`);
+      } catch (e) {
+        const err = e as Error;
+        toast.error(err?.message || `${platform} lookup failed`);
       } finally {
         setLcLoading(false);
       }
@@ -515,7 +518,7 @@ export default function AddQuestion() {
             </div>
             <div className="space-y-2">
               <Label>Difficulty</Label>
-              <Select value={form.difficulty} onValueChange={(v: any) => update("difficulty", v)}>
+              <Select value={form.difficulty} onValueChange={(v: string) => update("difficulty", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="easy">Easy</SelectItem>
@@ -594,7 +597,7 @@ export default function AddQuestion() {
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v: any) => update("status", v)}>
+              <Select value={form.status} onValueChange={(v: string) => update("status", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="solved">Solved</SelectItem>

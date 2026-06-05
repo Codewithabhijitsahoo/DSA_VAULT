@@ -12,11 +12,34 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+interface QDetail {
+  id: string;
+  title: string;
+  topic: string | null;
+  difficulty: "easy" | "medium" | "hard" | null;
+  status: "solved" | "pending" | "revisit" | null;
+  platform: string | null;
+  problem_link: string | null;
+  leetcode_number: string | null;
+  created_at: string;
+  problem_statement: string | null;
+  answer: string | null;
+  explanation: string | null;
+  code: string | null;
+  language: string | null;
+  time_complexity: string | null;
+  space_complexity: string | null;
+  tags: string[] | null;
+  is_public: boolean;
+  is_favorite: boolean | null;
+  needs_revision: boolean | null;
+}
+
 export default function QuestionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [q, setQ] = useState<any>(null);
+  const [q, setQ] = useState<QDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [togglingPublic, setTogglingPublic] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -25,19 +48,44 @@ export default function QuestionDetail() {
   useEffect(() => {
     if (!id) return;
     supabase.from("questions").select("*").eq("id", id).maybeSingle().then(({ data }) => {
-      setQ(data);
+      if (data) {
+        setQ({
+          id: data.id,
+          title: data.title,
+          topic: data.topic,
+          difficulty: data.difficulty as "easy" | "medium" | "hard" | null,
+          status: data.status as "solved" | "pending" | "revisit" | null,
+          platform: data.platform,
+          problem_link: data.problem_link,
+          leetcode_number: data.leetcode_number,
+          created_at: data.created_at,
+          problem_statement: data.problem_statement,
+          answer: data.answer,
+          explanation: data.explanation,
+          code: data.code,
+          language: data.language,
+          time_complexity: data.time_complexity,
+          space_complexity: data.space_complexity,
+          tags: data.tags,
+          is_public: data.is_public,
+          is_favorite: data.is_favorite,
+          needs_revision: data.needs_revision,
+        });
+      } else {
+        setQ(null);
+      }
       setLoading(false);
     });
 
     if (user) {
-      (supabase as any)
+      supabase
         .from("user_practices")
         .select("count")
         .eq("user_id", user.id)
         .eq("question_id", id)
         .maybeSingle()
-        .then(({ data }: any) => {
-          if (data) setPracticeCount(data.count);
+        .then(({ data }) => {
+          if (data && data.count !== null) setPracticeCount(data.count);
         });
     }
   }, [id, user]);
@@ -59,7 +107,7 @@ export default function QuestionDetail() {
   const handlePractice = async () => {
     if (!user || !id) return;
     const next = practiceCount + 1;
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("user_practices")
       .upsert({
         user_id: user.id,

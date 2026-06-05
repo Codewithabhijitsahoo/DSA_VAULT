@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export default function Notes() {
   const [form, setForm] = useState({ title: "", content: "", category: "General" });
   const [filter, setFilter] = useState("all");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("notes")
@@ -54,9 +54,9 @@ export default function Notes() {
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
     setNotes(data ?? []);
-  };
+  }, [user]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -52,7 +52,7 @@ export default function Dashboard() {
         solved: all.filter((q) => q.status === "solved").length,
         pending: all.filter((q) => q.status === "pending").length,
         publicTotal: publicCount ?? 0,
-        revisionCount: all.filter((q: any) => q.needs_revision).length
+        revisionCount: all.filter((q) => q.needs_revision).length
       });
       setRecent(all.slice(0, 5) as Question[]);
       setName(profile?.display_name ?? user.email?.split("@")[0] ?? "there");
@@ -60,7 +60,7 @@ export default function Dashboard() {
       // Fetch practice counts for recent items
       const recentIds = all.slice(0, 5).map(q => q.id);
       if (recentIds.length > 0) {
-        const { data: pData } = await (supabase as any)
+        const { data: pData } = await supabase
           .from("user_practices")
           .select("question_id, count")
           .in("question_id", recentIds)
@@ -68,7 +68,9 @@ export default function Dashboard() {
         
         if (pData) {
           const map: Record<string, number> = {};
-          pData.forEach((p: any) => { map[p.question_id] = p.count; });
+          pData.forEach((p) => {
+            if (p.question_id && p.count !== null) map[p.question_id] = p.count;
+          });
           setPractices(map);
         }
       }

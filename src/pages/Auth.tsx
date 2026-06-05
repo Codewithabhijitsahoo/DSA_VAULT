@@ -64,7 +64,7 @@ export default function Auth() {
       }
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: signUpData.email,
       password: signUpData.password,
       options: {
@@ -83,7 +83,11 @@ export default function Auth() {
       toast.error(errorMessage);
       return;
     }
-    toast.success("Account created! Please check your email to confirm your account before signing in.");
+    if (data?.session) {
+      toast.success("Account created successfully! Logging you in...");
+    } else {
+      toast.success("Account created! Please check your email to confirm your account before signing in.");
+    }
     // We stay on the auth page or show a dedicated "Check Email" state instead of navigating to dashboard
     // because the session won't be active yet.
     setSignUpData({ email: "", password: "", name: "" });

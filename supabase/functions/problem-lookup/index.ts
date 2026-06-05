@@ -30,6 +30,13 @@ function similarity(a: string, b: string): number {
   return common / Math.max(aw.size, bw.size);
 }
 
+interface LeetCodeQuestion {
+  title: string;
+  titleSlug: string;
+  questionFrontendId: string;
+  difficulty: string;
+}
+
 async function lookupLeetCode(title: string): Promise<Question | null> {
   const query = `
     query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
@@ -67,9 +74,9 @@ async function lookupLeetCode(title: string): Promise<Question | null> {
 
   if (!res.ok) return null;
   const data = await res.json();
-  const questions = data?.data?.problemsetQuestionList?.questions || [];
+  const questions: LeetCodeQuestion[] = data?.data?.problemsetQuestionList?.questions || [];
   
-  let best: any = null;
+  let best: LeetCodeQuestion | null = null;
   let bestScore = 0;
   for (const q of questions) {
     const s = similarity(title, q.title);
@@ -87,14 +94,21 @@ async function lookupLeetCode(title: string): Promise<Question | null> {
   };
 }
 
+interface CodeforcesProblem {
+  name: string;
+  contestId: number;
+  index: string;
+  rating?: number;
+}
+
 async function lookupCodeforces(title: string): Promise<Question | null> {
   const res = await fetch("https://codeforces.com/api/problemset.problems");
   if (!res.ok) return null;
   const data = await res.json();
   if (data.status !== "OK") return null;
 
-  const problems = data.result.problems;
-  let best: any = null;
+  const problems: CodeforcesProblem[] = data.result.problems;
+  let best: CodeforcesProblem | null = null;
   let bestScore = 0;
 
   const searchSpace = problems.slice(0, 2000);
@@ -125,12 +139,19 @@ async function lookupCodeforces(title: string): Promise<Question | null> {
   };
 }
 
+interface AtCoderProblem {
+  id: string;
+  contest_id: string;
+  title: string;
+  name: string;
+}
+
 async function lookupAtCoder(title: string): Promise<Question | null> {
   const res = await fetch("https://kenkoooo.com/atcoder/resources/problems.json");
   if (!res.ok) return null;
-  const problems = await res.json();
+  const problems: AtCoderProblem[] = await res.json();
 
-  let best: any = null;
+  let best: AtCoderProblem | null = null;
   let bestScore = 0;
 
   for (const p of problems) {
@@ -153,15 +174,21 @@ async function lookupAtCoder(title: string): Promise<Question | null> {
   };
 }
 
+interface HackerRankChallenge {
+  name: string;
+  slug: string;
+  difficulty_name?: string;
+}
+
 async function lookupHackerRank(title: string): Promise<Question | null> {
   const res = await fetch(`https://www.hackerrank.com/rest/contests/master/tracks/algorithms/challenges?page=1&limit=10&filters%5Btitle%5D=${encodeURIComponent(title)}`, {
     headers: { "Accept": "application/json" }
   });
   if (!res.ok) return null;
   const data = await res.json();
-  const challenges = data?.models || [];
+  const challenges: HackerRankChallenge[] = data?.models || [];
   
-  let best: any = null;
+  let best: HackerRankChallenge | null = null;
   let bestScore = 0;
   for (const c of challenges) {
     const s = similarity(title, c.name);
@@ -216,8 +243,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), {
+  } catch (e) {
+    const err = e as Error;
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

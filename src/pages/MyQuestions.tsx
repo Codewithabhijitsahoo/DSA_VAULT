@@ -56,34 +56,36 @@ export default function MyQuestions() {
   const [loading, setLoading] = useState(true);
   const [practices, setPractices] = useState<Record<string, number>>({});
 
-  const load = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data } = await supabase
-      .from("questions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    setItems((data ?? []) as Q[]);
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return;
+      setLoading(true);
+      const { data } = await supabase
+        .from("questions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setItems((data ?? []) as Q[]);
 
-    // Fetch practice counts
-    const { data: practiceData } = await (supabase as any)
-      .from("user_practices")
-      .select("question_id, count")
-      .eq("user_id", user.id);
-    
-    if (practiceData) {
-      const map: Record<string, number> = {};
-      practiceData.forEach((p: any) => {
-        if (p.question_id) map[p.question_id] = p.count || 0;
-      });
-      setPractices(map);
-    }
+      // Fetch practice counts
+      const { data: practiceData } = await supabase
+        .from("user_practices")
+        .select("question_id, count")
+        .eq("user_id", user.id);
+      
+      if (practiceData) {
+        const map: Record<string, number> = {};
+        practiceData.forEach((p) => {
+          if (p.question_id && p.count !== null) map[p.question_id] = p.count;
+        });
+        setPractices(map);
+      }
 
-    setLoading(false);
-  };
+      setLoading(false);
+    };
 
-  useEffect(() => { load(); }, []);
+    load();
+  }, [user]);
 
   const topics = useMemo(() => {
     const set = new Set<string>();
@@ -157,7 +159,7 @@ export default function MyQuestions() {
     const current = practices[qId] || 0;
     const next = current + 1;
     
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("user_practices")
       .upsert({ 
         user_id: user.id, 
