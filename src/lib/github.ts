@@ -25,11 +25,16 @@ export const extensionMap: Record<string, string> = {
   css: "css",
 };
 
-export function getGithubConfig(): GithubConfig | null {
-  const stored = localStorage.getItem("dsa_vault_github_config");
-  if (!stored) return null;
+export function getGithubConfig(userId?: string | null): GithubConfig | null {
+  const key = userId ? `dsa_vault_github_config_${userId}` : "dsa_vault_github_config";
+  const stored = localStorage.getItem(key);
+  let finalStored = stored;
+  if (!finalStored && userId) {
+    finalStored = localStorage.getItem("dsa_vault_github_config");
+  }
+  if (!finalStored) return null;
   try {
-    const config = JSON.parse(stored);
+    const config = JSON.parse(finalStored);
     return {
       token: config.token || "",
       username: config.username || "",
@@ -42,8 +47,12 @@ export function getGithubConfig(): GithubConfig | null {
   }
 }
 
-export function saveGithubConfig(config: GithubConfig) {
-  localStorage.setItem("dsa_vault_github_config", JSON.stringify(config));
+export function saveGithubConfig(config: GithubConfig, userId?: string | null) {
+  const key = userId ? `dsa_vault_github_config_${userId}` : "dsa_vault_github_config";
+  localStorage.setItem(key, JSON.stringify(config));
+  if (userId) {
+    localStorage.removeItem("dsa_vault_github_config");
+  }
 }
 
 export function slugify(text: string) {

@@ -229,11 +229,12 @@ export default function AddQuestion() {
   }, [searchParams, editing]);
 
   useEffect(() => {
-    const config = getGithubConfig();
+    if (!user) return;
+    const config = getGithubConfig(user.id);
     if (config && config.token && config.username && config.repo) {
       setPushToGhOnSave(true);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const title = form.title.trim();
@@ -446,7 +447,7 @@ export default function AddQuestion() {
       }
 
       if (pushToGhOnSave && form.code) {
-        const config = getGithubConfig();
+        const config = getGithubConfig(user.id);
         if (config && config.token && config.username && config.repo) {
           const commitMsg = customCommitMessage.trim()
             ? customCommitMessage.trim()

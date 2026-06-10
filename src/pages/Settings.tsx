@@ -33,7 +33,7 @@ export default function Settings() {
     });
 
     // Load GitHub settings
-    const ghConfig = getGithubConfig();
+    const ghConfig = getGithubConfig(user.id);
     if (ghConfig) {
       setGhToken(ghConfig.token);
       setGhUser(ghConfig.username);
@@ -60,7 +60,7 @@ export default function Settings() {
       repo: ghRepo,
       branch: ghBranch || "main",
       path: ghPath || "solutions",
-    });
+    }, user?.id);
     setSavingGithub(false);
     toast.success("GitHub configuration saved locally");
   };

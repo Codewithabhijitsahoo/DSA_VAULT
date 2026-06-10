@@ -151,7 +151,7 @@ export default function QuestionDetail() {
 
   const handlePushClick = () => {
     if (!q) return;
-    const config = getGithubConfig();
+    const config = getGithubConfig(user?.id);
     if (!config || !config.token || !config.username || !config.repo) {
       toast.error("GitHub is not configured. Please connect your GitHub account in Settings.");
       return;
@@ -168,7 +168,7 @@ export default function QuestionDetail() {
 
   const pushToGithub = async () => {
     if (!q) return;
-    const config = getGithubConfig();
+    const config = getGithubConfig(user?.id);
     if (!config || !config.token || !config.username || !config.repo) {
       toast.error("GitHub is not configured. Please connect your GitHub account in Settings.");
       return;
