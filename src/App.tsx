@@ -23,6 +23,9 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Immediately clean up any legacy, un-scoped shared GitHub configuration
+localStorage.removeItem("dsa_vault_github_config");
+
 const Protected = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
     <AppLayout>{children}</AppLayout>

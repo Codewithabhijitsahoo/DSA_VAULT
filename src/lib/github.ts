@@ -26,15 +26,12 @@ export const extensionMap: Record<string, string> = {
 };
 
 export function getGithubConfig(userId?: string | null): GithubConfig | null {
-  const key = userId ? `dsa_vault_github_config_${userId}` : "dsa_vault_github_config";
+  if (!userId) return null;
+  const key = `dsa_vault_github_config_${userId}`;
   const stored = localStorage.getItem(key);
-  let finalStored = stored;
-  if (!finalStored && userId) {
-    finalStored = localStorage.getItem("dsa_vault_github_config");
-  }
-  if (!finalStored) return null;
+  if (!stored) return null;
   try {
-    const config = JSON.parse(finalStored);
+    const config = JSON.parse(stored);
     return {
       token: config.token || "",
       username: config.username || "",
@@ -48,11 +45,11 @@ export function getGithubConfig(userId?: string | null): GithubConfig | null {
 }
 
 export function saveGithubConfig(config: GithubConfig, userId?: string | null) {
-  const key = userId ? `dsa_vault_github_config_${userId}` : "dsa_vault_github_config";
+  if (!userId) return;
+  const key = `dsa_vault_github_config_${userId}`;
   localStorage.setItem(key, JSON.stringify(config));
-  if (userId) {
-    localStorage.removeItem("dsa_vault_github_config");
-  }
+  // Clean up legacy shared key to prevent any token exposure
+  localStorage.removeItem("dsa_vault_github_config");
 }
 
 export function slugify(text: string) {
