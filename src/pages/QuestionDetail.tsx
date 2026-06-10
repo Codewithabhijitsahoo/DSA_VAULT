@@ -7,10 +7,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CodeEditor } from "@/components/CodeEditor";
 import { DifficultyBadge, StatusBadge } from "@/components/StatusBadges";
-import { ArrowLeft, ExternalLink, Edit3, Star, Sparkles, Loader2, Globe, Lock, Copy, Check, RotateCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit3, Star, Sparkles, Loader2, Globe, Lock, Copy, Check, RotateCw, Github } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { getGithubConfig, pushQuestionToGithub } from "@/lib/github";
 
 interface QDetail {
   id: string;
@@ -44,6 +45,7 @@ export default function QuestionDetail() {
   const [togglingPublic, setTogglingPublic] = useState(false);
   const [copied, setCopied] = useState(false);
   const [practiceCount, setPracticeCount] = useState(0);
+  const [pushingToGithub, setPushingToGithub] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -130,6 +132,50 @@ export default function QuestionDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const pushToGithub = async () => {
+    if (!q) return;
+    const config = getGithubConfig();
+    if (!config || !config.token || !config.username || !config.repo) {
+      toast.error("GitHub is not configured. Please connect your GitHub account in Settings.");
+      return;
+    }
+
+    setPushingToGithub(true);
+    const res = await pushQuestionToGithub(
+      {
+        title: q.title,
+        difficulty: q.difficulty,
+        platform: q.platform,
+        leetcode_number: q.leetcode_number,
+        problem_link: q.problem_link,
+        time_complexity: q.time_complexity,
+        space_complexity: q.space_complexity,
+        code: q.code,
+        language: q.language,
+      },
+      config
+    );
+    setPushingToGithub(false);
+
+    if (res.success) {
+      toast.success(
+        <div className="flex flex-col gap-1">
+          <span className="font-semibold">Successfully pushed code to GitHub!</span>
+          <a
+            href={res.htmlUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline font-mono inline-flex items-center gap-1 mt-1"
+          >
+            View file on GitHub <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      );
+    } else {
+      toast.error(res.message || "Failed to push to GitHub");
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
@@ -198,6 +244,18 @@ export default function QuestionDetail() {
           >
             <RotateCw className="h-3.5 w-3.5 mr-1.5" /> Practice {practiceCount > 0 && `(${practiceCount})`}
           </Button>
+          {q.code && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={pushToGithub}
+              disabled={pushingToGithub}
+              className="border-secondary/20 bg-secondary/5 hover:bg-secondary/10 text-secondary font-semibold"
+            >
+              {pushingToGithub ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Github className="h-3.5 w-3.5 mr-1.5" />}
+              Push to GitHub
+            </Button>
+          )}
           <Button
             size="sm"
             variant={q.is_public ? "default" : "outline"}

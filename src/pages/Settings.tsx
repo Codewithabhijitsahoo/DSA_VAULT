@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/hooks/useTheme";
-import { Sun, Moon, Save, LogOut, User as UserIcon } from "lucide-react";
+import { Sun, Moon, Save, LogOut, User as UserIcon, Github, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { getGithubConfig, saveGithubConfig, testGithubConnection } from "@/lib/github";
 
 export default function Settings() {
   const { user, signOut } = useAuth();
@@ -15,11 +16,31 @@ export default function Settings() {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // GitHub States
+  const [ghToken, setGhToken] = useState("");
+  const [ghUser, setGhUser] = useState("");
+  const [ghRepo, setGhRepo] = useState("");
+  const [ghBranch, setGhBranch] = useState("main");
+  const [ghPath, setGhPath] = useState("solutions");
+  const [showToken, setShowToken] = useState(false);
+  const [savingGithub, setSavingGithub] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle().then(({ data }) => {
       setName(data?.display_name ?? "");
     });
+
+    // Load GitHub settings
+    const ghConfig = getGithubConfig();
+    if (ghConfig) {
+      setGhToken(ghConfig.token);
+      setGhUser(ghConfig.username);
+      setGhRepo(ghConfig.repo);
+      setGhBranch(ghConfig.branch);
+      setGhPath(ghConfig.path);
+    }
   }, [user]);
 
   const save = async () => {
@@ -29,6 +50,36 @@ export default function Settings() {
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Profile updated");
+  };
+
+  const saveGithub = () => {
+    setSavingGithub(true);
+    saveGithubConfig({
+      token: ghToken,
+      username: ghUser,
+      repo: ghRepo,
+      branch: ghBranch || "main",
+      path: ghPath || "solutions",
+    });
+    setSavingGithub(false);
+    toast.success("GitHub configuration saved locally");
+  };
+
+  const testConnection = async () => {
+    setTestingConnection(true);
+    const res = await testGithubConnection({
+      token: ghToken,
+      username: ghUser,
+      repo: ghRepo,
+      branch: ghBranch || "main",
+      path: ghPath || "solutions",
+    });
+    setTestingConnection(false);
+    if (res.success) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+    }
   };
 
   return (
@@ -54,6 +105,101 @@ export default function Settings() {
         <Button onClick={save} disabled={saving} className="gradient-hero text-primary-foreground hover:opacity-90">
           <Save className="h-4 w-4 mr-1.5" /> {saving ? "Saving..." : "Save changes"}
         </Button>
+      </Card>
+
+      <Card className="p-6 border-border bg-card space-y-4">
+        <div className="flex items-center gap-2">
+          <Github className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold">GitHub Integration</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Configure your GitHub repository to push your code solutions directly from the vault. 
+          Your token is stored <strong>locally in your browser</strong> and is only sent directly to GitHub's API.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="gh-token">Personal Access Token (PAT)</Label>
+            <div className="relative">
+              <Input
+                id="gh-token"
+                type={showToken ? "text" : "password"}
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                value={ghToken}
+                onChange={(e) => setGhToken(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 px-2 hover:bg-transparent"
+                onClick={() => setShowToken(!showToken)}
+              >
+                {showToken ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+              </Button>
+            </div>
+            <span className="text-[11px] text-muted-foreground block">
+              Needs <code>repo</code> permissions. Generate a PAT in{" "}
+              <a
+                href="https://github.com/settings/tokens"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-primary hover:text-primary/80 inline-flex items-center gap-0.5"
+              >
+                GitHub Developer Settings <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gh-user">GitHub Username / Owner</Label>
+            <Input
+              id="gh-user"
+              placeholder="e.g. Codewithabhijitsahoo"
+              value={ghUser}
+              onChange={(e) => setGhUser(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gh-repo">Repository Name</Label>
+            <Input
+              id="gh-repo"
+              placeholder="e.g. DSA_VAULT"
+              value={ghRepo}
+              onChange={(e) => setGhRepo(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gh-branch">Branch Name</Label>
+            <Input
+              id="gh-branch"
+              placeholder="e.g. main"
+              value={ghBranch}
+              onChange={(e) => setGhBranch(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gh-path">Target Folder</Label>
+            <Input
+              id="gh-path"
+              placeholder="e.g. solutions"
+              value={ghPath}
+              onChange={(e) => setGhPath(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <Button onClick={saveGithub} disabled={savingGithub} className="gradient-hero text-primary-foreground hover:opacity-90 shadow-glow">
+            <Save className="h-4 w-4 mr-1.5" /> Save Configuration
+          </Button>
+          <Button variant="outline" onClick={testConnection} disabled={testingConnection || !ghToken || !ghUser || !ghRepo}>
+            {testingConnection ? "Testing..." : "Test Connection"}
+          </Button>
+        </div>
       </Card>
 
       <Card className="p-6 border-border bg-card">
