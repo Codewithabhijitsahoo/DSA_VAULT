@@ -49,12 +49,48 @@ interface Q {
 export default function MyQuestions() {
   const { user } = useAuth();
   const [items, setItems] = useState<Q[]>([]);
-  const [search, setSearch] = useState("");
-  const [topic, setTopic] = useState("all");
-  const [difficulty, setDifficulty] = useState("all");
-  const [status, setStatus] = useState("all");
+  const [search, setSearch] = useState(() => sessionStorage.getItem("mq_search") || "");
+  const [topic, setTopic] = useState(() => sessionStorage.getItem("mq_topic") || "all");
+  const [difficulty, setDifficulty] = useState(() => sessionStorage.getItem("mq_difficulty") || "all");
+  const [status, setStatus] = useState(() => sessionStorage.getItem("mq_status") || "all");
   const [loading, setLoading] = useState(true);
   const [practices, setPractices] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    sessionStorage.setItem("mq_search", search);
+  }, [search]);
+
+  useEffect(() => {
+    sessionStorage.setItem("mq_topic", topic);
+  }, [topic]);
+
+  useEffect(() => {
+    sessionStorage.setItem("mq_difficulty", difficulty);
+  }, [difficulty]);
+
+  useEffect(() => {
+    sessionStorage.setItem("mq_status", status);
+  }, [status]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem("mq_scroll", window.scrollY.toString());
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      const savedScroll = sessionStorage.getItem("mq_scroll");
+      if (savedScroll) {
+        const timer = setTimeout(() => {
+          window.scrollTo(0, parseInt(savedScroll, 10));
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [loading]);
 
   useEffect(() => {
     const load = async () => {

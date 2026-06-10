@@ -57,9 +57,33 @@ export default function TcsPrep() {
   const { user } = useAuth();
   
   const [items, setItems] = useState<Q[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => sessionStorage.getItem("tcs_search") || "");
   const [loading, setLoading] = useState(true);
   const [practices, setPractices] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    sessionStorage.setItem("tcs_search", search);
+  }, [search]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem("tcs_scroll", window.scrollY.toString());
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      const savedScroll = sessionStorage.getItem("tcs_scroll");
+      if (savedScroll) {
+        const timer = setTimeout(() => {
+          window.scrollTo(0, parseInt(savedScroll, 10));
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [loading]);
 
   const load = useCallback(async () => {
     if (!user) return;
