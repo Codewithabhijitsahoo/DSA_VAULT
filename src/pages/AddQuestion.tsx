@@ -374,117 +374,124 @@ export default function AddQuestion() {
     e.preventDefault();
     if (!user) return;
     try {
-      schema.parse(form);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        toast.error(err.errors[0].message);
-        return;
+      try {
+        schema.parse(form);
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          toast.error(err.errors[0].message);
+          return;
+        }
+        throw err;
       }
-    }
-    setLoading(true);
+      setLoading(true);
 
-    // Duplicate Check for Public Library
-    if (isPublic) {
-      const trimmedTitle = form.title.trim();
-      let query = supabase
-        .from("questions")
-        .select("id, title")
-        .eq("is_public", true);
+      // Duplicate Check for Public Library
+      if (isPublic) {
+        const trimmedTitle = form.title.trim();
+        let query = supabase
+          .from("questions")
+          .select("id, title")
+          .eq("is_public", true);
 
-      // Build OR filter for title, link, and leetcode number
-      // Values with spaces or special chars must be wrapped in double quotes for .or()
-      const filters = [];
-      filters.push(`title.ilike."${trimmedTitle}"`);
-      if (form.problem_link) filters.push(`problem_link.eq."${form.problem_link.trim()}"`);
-      if (leetcodeNumber) filters.push(`leetcode_number.eq."${leetcodeNumber.trim()}"`);
-      
-      query = query.or(filters.join(","));
-
-      // If editing, exclude current question
-      if (editing) {
-        query = query.neq("id", id!);
-      }
-
-      const { data: existing, error: checkError } = await query.limit(1);
-
-      if (checkError) {
-        console.error("Duplicate check error:", checkError);
-      } else if (existing && existing.length > 0) {
-        setLoading(false);
-        toast.error(`A question with this title/link already exists in the Public Library!`, {
-          description: "Please check the Community Feed before adding duplicates.",
-        });
-        return;
-      }
-    }
-
-    const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
-    if (customFilename.trim()) {
-      tags.push(`filename:${customFilename.trim()}`);
-    }
-    const payload = {
-      ...form,
-      user_id: user.id,
-      tags,
-      is_favorite: favorite,
-      needs_revision: needsRevision,
-      is_public: isPublic,
-      problem_link: form.problem_link || null,
-      leetcode_number: leetcodeNumber,
-    };
-
-    const { error } = editing
-      ? await supabase.from("questions").update(payload).eq("id", id!)
-      : await supabase.from("questions").insert(payload);
-
-    if (error) {
-      setLoading(false);
-      toast.error(error.message);
-      return;
-    }
-
-    if (pushToGhOnSave && form.code) {
-      const config = getGithubConfig();
-      if (config && config.token && config.username && config.repo) {
-        const commitMsg = customCommitMessage.trim()
-          ? customCommitMessage.trim()
-          : (editing 
-              ? `docs: update solution for ${form.title} (${form.platform || "DSA Vault"})`
-              : `docs: add solution for ${form.title} (${form.platform || "DSA Vault"})`);
-          
-        const pushRes = await pushQuestionToGithub(
-          {
-            title: form.title,
-            difficulty: form.difficulty,
-            platform: form.platform,
-            leetcode_number: leetcodeNumber,
-            problem_link: form.problem_link || null,
-            time_complexity: form.time_complexity || null,
-            space_complexity: form.space_complexity || null,
-            code: form.code,
-            language: form.language,
-            custom_filename: customFilename.trim() || null,
-          },
-          config,
-          commitMsg
-        );
+        // Build OR filter for title, link, and leetcode number
+        // Values with spaces or special chars must be wrapped in double quotes for .or()
+        const filters = [];
+        filters.push(`title.ilike."${trimmedTitle}"`);
+        if (form.problem_link) filters.push(`problem_link.eq."${form.problem_link.trim()}"`);
+        if (leetcodeNumber) filters.push(`leetcode_number.eq."${leetcodeNumber.trim()}"`);
         
-        if (pushRes.success) {
-          toast.success(editing ? "Question updated and pushed to GitHub!" : "Saved to your vault and pushed to GitHub!");
-        } else {
-          toast.error("Saved to vault, but GitHub push failed", {
-            description: pushRes.message || "Unknown error",
+        query = query.or(filters.join(","));
+
+        // If editing, exclude current question
+        if (editing) {
+          query = query.neq("id", id!);
+        }
+
+        const { data: existing, error: checkError } = await query.limit(1);
+
+        if (checkError) {
+          console.error("Duplicate check error:", checkError);
+        } else if (existing && existing.length > 0) {
+          setLoading(false);
+          toast.error(`A question with this title/link already exists in the Public Library!`, {
+            description: "Please check the Community Feed before adding duplicates.",
           });
+          return;
+        }
+      }
+
+      const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+      if (customFilename.trim()) {
+        tags.push(`filename:${customFilename.trim()}`);
+      }
+      const payload = {
+        ...form,
+        user_id: user.id,
+        tags,
+        is_favorite: favorite,
+        needs_revision: needsRevision,
+        is_public: isPublic,
+        problem_link: form.problem_link || null,
+        leetcode_number: leetcodeNumber,
+      };
+
+      const { error } = editing
+        ? await supabase.from("questions").update(payload).eq("id", id!)
+        : await supabase.from("questions").insert(payload);
+
+      if (error) {
+        setLoading(false);
+        toast.error(error.message);
+        return;
+      }
+
+      if (pushToGhOnSave && form.code) {
+        const config = getGithubConfig();
+        if (config && config.token && config.username && config.repo) {
+          const commitMsg = customCommitMessage.trim()
+            ? customCommitMessage.trim()
+            : (editing 
+                ? `docs: update solution for ${form.title} (${form.platform || "DSA Vault"})`
+                : `docs: add solution for ${form.title} (${form.platform || "DSA Vault"})`);
+            
+          const pushRes = await pushQuestionToGithub(
+            {
+              title: form.title,
+              difficulty: form.difficulty,
+              platform: form.platform,
+              leetcode_number: leetcodeNumber,
+              problem_link: form.problem_link || null,
+              time_complexity: form.time_complexity || null,
+              space_complexity: form.space_complexity || null,
+              code: form.code,
+              language: form.language,
+              custom_filename: customFilename.trim() || null,
+            },
+            config,
+            commitMsg
+          );
+          
+          if (pushRes.success) {
+            toast.success(editing ? "Question updated and pushed to GitHub!" : "Saved to your vault and pushed to GitHub!");
+          } else {
+            toast.error("Saved to vault, but GitHub push failed", {
+              description: pushRes.message || "Unknown error",
+            });
+          }
+        } else {
+          toast.error("Saved to vault, but GitHub config is missing. Code not pushed.");
         }
       } else {
-        toast.error("Saved to vault, but GitHub config is missing. Code not pushed.");
+        toast.success(editing ? "Question updated" : "Saved to your vault!");
       }
-    } else {
-      toast.success(editing ? "Question updated" : "Saved to your vault!");
-    }
 
-    setLoading(false);
-    navigate("/questions");
+      setLoading(false);
+      navigate("/questions");
+    } catch (error: any) {
+      setLoading(false);
+      console.error("Submission failed:", error);
+      toast.error("Submission failed: " + (error.message || String(error)));
+    }
   };
 
   return (
