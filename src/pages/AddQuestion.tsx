@@ -18,9 +18,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CodeEditor } from "@/components/CodeEditor";
-import { ArrowLeft, Save, Loader2, Star, Search, ExternalLink, CheckCircle2, XCircle, Globe } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Star, Search, ExternalLink, CheckCircle2, XCircle, Globe, Github } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { getGithubConfig, pushQuestionToGithub } from "@/lib/github";
 
 const schema = z.object({
   title: z.string().trim().min(1, "Title required").max(200),
@@ -140,6 +141,7 @@ export default function AddQuestion() {
   const [leetcodeNumber, setLeetcodeNumber] = useState<string | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ id: string; title: string } | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const [pushToGhOnSave, setPushToGhOnSave] = useState(false);
   const [form, setForm] = useState({
     title: "",
     problem_statement: "",
@@ -218,6 +220,13 @@ export default function AddQuestion() {
       return updated;
     });
   }, [searchParams, editing]);
+
+  useEffect(() => {
+    const config = getGithubConfig();
+    if (config && config.token && config.username && config.repo) {
+      setPushToGhOnSave(true);
+    }
+  }, []);
 
   useEffect(() => {
     const title = form.title.trim();
@@ -418,12 +427,50 @@ export default function AddQuestion() {
       ? await supabase.from("questions").update(payload).eq("id", id!)
       : await supabase.from("questions").insert(payload);
 
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message);
       return;
     }
-    toast.success(editing ? "Question updated" : "Saved to your vault!");
+
+    if (pushToGhOnSave && form.code) {
+      const config = getGithubConfig();
+      if (config && config.token && config.username && config.repo) {
+        const commitMsg = editing 
+          ? `docs: update solution for ${form.title} (${form.platform || "DSA Vault"})`
+          : `docs: add solution for ${form.title} (${form.platform || "DSA Vault"})`;
+          
+        const pushRes = await pushQuestionToGithub(
+          {
+            title: form.title,
+            difficulty: form.difficulty,
+            platform: form.platform,
+            leetcode_number: leetcodeNumber,
+            problem_link: form.problem_link || null,
+            time_complexity: form.time_complexity || null,
+            space_complexity: form.space_complexity || null,
+            code: form.code,
+            language: form.language,
+          },
+          config,
+          commitMsg
+        );
+        
+        if (pushRes.success) {
+          toast.success(editing ? "Question updated and pushed to GitHub!" : "Saved to your vault and pushed to GitHub!");
+        } else {
+          toast.error("Saved to vault, but GitHub push failed", {
+            description: pushRes.message || "Unknown error",
+          });
+        }
+      } else {
+        toast.error("Saved to vault, but GitHub config is missing. Code not pushed.");
+      }
+    } else {
+      toast.success(editing ? "Question updated" : "Saved to your vault!");
+    }
+
+    setLoading(false);
     navigate("/questions");
   };
 
@@ -630,6 +677,15 @@ export default function AddQuestion() {
                 </p>
               </div>
               <Switch id="pub" checked={isPublic} onCheckedChange={setIsPublic} disabled={Boolean(duplicateInfo)} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border px-4 py-2 bg-secondary/5 border-secondary/20">
+              <div>
+                <Label htmlFor="gh-push" className="cursor-pointer flex items-center gap-1.5 font-semibold text-secondary">
+                  <Github className="h-3.5 w-3.5" /> GitHub Sync
+                </Label>
+                <p className="text-[10px] text-muted-foreground font-medium">Push/update solution on save</p>
+              </div>
+              <Switch id="gh-push" checked={pushToGhOnSave} onCheckedChange={setPushToGhOnSave} />
             </div>
           </div>
         </Card>
