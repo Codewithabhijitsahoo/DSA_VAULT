@@ -321,7 +321,7 @@ export default function TcsPrep() {
                     {q.time_complexity && (
                       <Badge variant="outline" className="font-mono text-[10px]">{q.time_complexity}</Badge>
                     )}
-                    {q.tags && q.tags.map((t) => (
+                    {q.tags && q.tags.filter((t) => !t.startsWith("filename:")).map((t) => (
                       <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">#{t}</span>
                     ))}
                   </div>

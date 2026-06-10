@@ -142,6 +142,8 @@ export default function AddQuestion() {
   const [duplicateInfo, setDuplicateInfo] = useState<{ id: string; title: string } | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [pushToGhOnSave, setPushToGhOnSave] = useState(false);
+  const [customFilename, setCustomFilename] = useState("");
+  const [customCommitMessage, setCustomCommitMessage] = useState("");
   const [form, setForm] = useState({
     title: "",
     problem_statement: "",
@@ -177,7 +179,12 @@ export default function AddQuestion() {
         space_complexity: data.space_complexity ?? "",
         status: data.status,
       });
-      setTagsInput((data.tags ?? []).join(", "));
+      const tags = data.tags ?? [];
+      const filenameTag = tags.find(t => t.startsWith("filename:"));
+      const customFilenameVal = filenameTag ? filenameTag.replace("filename:", "") : "";
+      const displayTags = tags.filter(t => !t.startsWith("filename:"));
+      setTagsInput(displayTags.join(", "));
+      setCustomFilename(customFilenameVal);
       setFavorite(data.is_favorite ?? false);
       setNeedsRevision(data.needs_revision ?? false);
       setIsPublic(data.is_public ?? false);
@@ -412,6 +419,9 @@ export default function AddQuestion() {
     }
 
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+    if (customFilename.trim()) {
+      tags.push(`filename:${customFilename.trim()}`);
+    }
     const payload = {
       ...form,
       user_id: user.id,
@@ -436,9 +446,11 @@ export default function AddQuestion() {
     if (pushToGhOnSave && form.code) {
       const config = getGithubConfig();
       if (config && config.token && config.username && config.repo) {
-        const commitMsg = editing 
-          ? `docs: update solution for ${form.title} (${form.platform || "DSA Vault"})`
-          : `docs: add solution for ${form.title} (${form.platform || "DSA Vault"})`;
+        const commitMsg = customCommitMessage.trim()
+          ? customCommitMessage.trim()
+          : (editing 
+              ? `docs: update solution for ${form.title} (${form.platform || "DSA Vault"})`
+              : `docs: add solution for ${form.title} (${form.platform || "DSA Vault"})`);
           
         const pushRes = await pushQuestionToGithub(
           {
@@ -451,6 +463,7 @@ export default function AddQuestion() {
             space_complexity: form.space_complexity || null,
             code: form.code,
             language: form.language,
+            custom_filename: customFilename.trim() || null,
           },
           config,
           commitMsg
@@ -678,14 +691,40 @@ export default function AddQuestion() {
               </div>
               <Switch id="pub" checked={isPublic} onCheckedChange={setIsPublic} disabled={Boolean(duplicateInfo)} />
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border px-4 py-2 bg-secondary/5 border-secondary/20">
-              <div>
-                <Label htmlFor="gh-push" className="cursor-pointer flex items-center gap-1.5 font-semibold text-secondary">
-                  <Github className="h-3.5 w-3.5" /> GitHub Sync
-                </Label>
-                <p className="text-[10px] text-muted-foreground font-medium">Push/update solution on save</p>
+            <div className="flex flex-col gap-4 rounded-lg border border-border px-4 py-3 bg-secondary/5 border-secondary/20 col-span-1 md:col-span-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="gh-push" className="cursor-pointer flex items-center gap-1.5 font-semibold text-secondary">
+                    <Github className="h-3.5 w-3.5" /> GitHub Sync
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground font-medium">Push/update solution on save</p>
+                </div>
+                <Switch id="gh-push" checked={pushToGhOnSave} onCheckedChange={setPushToGhOnSave} />
               </div>
-              <Switch id="gh-push" checked={pushToGhOnSave} onCheckedChange={setPushToGhOnSave} />
+              {pushToGhOnSave && (
+                <div className="space-y-4 mt-1 pt-2 border-t border-border/40 animate-fade-in">
+                  <div className="space-y-2">
+                    <Label htmlFor="gh-filename" className="text-xs font-semibold text-secondary">GitHub Filename (Optional)</Label>
+                    <Input
+                      id="gh-filename"
+                      value={customFilename}
+                      onChange={(e) => setCustomFilename(e.target.value)}
+                      placeholder="e.g. two_sum.py (If empty, generated from title)"
+                      className="bg-background border-secondary/20 text-sm focus-visible:ring-secondary/40 max-w-md"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gh-commit-msg" className="text-xs font-semibold text-secondary">Commit Message (Optional)</Label>
+                    <Input
+                      id="gh-commit-msg"
+                      value={customCommitMessage}
+                      onChange={(e) => setCustomCommitMessage(e.target.value)}
+                      placeholder="e.g. docs: add initial solution"
+                      className="bg-background border-secondary/20 text-sm focus-visible:ring-secondary/40 max-w-md"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Card>

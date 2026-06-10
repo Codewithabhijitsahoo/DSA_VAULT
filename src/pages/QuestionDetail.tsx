@@ -11,7 +11,7 @@ import { ArrowLeft, ExternalLink, Edit3, Star, Sparkles, Loader2, Globe, Lock, C
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { getGithubConfig, pushQuestionToGithub } from "@/lib/github";
+import { getGithubConfig, pushQuestionToGithub, slugify, extensionMap } from "@/lib/github";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +58,7 @@ export default function QuestionDetail() {
   const [pushingToGithub, setPushingToGithub] = useState(false);
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
+  const [customFilename, setCustomFilename] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -85,6 +86,10 @@ export default function QuestionDetail() {
           is_favorite: data.is_favorite,
           needs_revision: data.needs_revision,
         });
+        const filenameTag = (data.tags as string[] | null)?.find((t) => t.startsWith("filename:"));
+        if (filenameTag) {
+          setCustomFilename(filenameTag.replace("filename:", ""));
+        }
       } else {
         setQ(null);
       }
@@ -152,6 +157,12 @@ export default function QuestionDetail() {
       return;
     }
     setCommitMessage(`docs: add solution for ${q.title} (${q.platform || "DSA Vault"})`);
+    if (!customFilename) {
+      const ext = extensionMap[q.language?.toLowerCase() || ""] || "txt";
+      const titleSlug = slugify(q.title);
+      const numPrefix = q.leetcode_number ? `${q.leetcode_number}_` : "";
+      setCustomFilename(`${numPrefix}${titleSlug}.${ext}`);
+    }
     setIsCommitDialogOpen(true);
   };
 
@@ -175,6 +186,7 @@ export default function QuestionDetail() {
         space_complexity: q.space_complexity,
         code: q.code,
         language: q.language,
+        custom_filename: customFilename.trim() || null,
       },
       config,
       commitMessage
@@ -183,6 +195,18 @@ export default function QuestionDetail() {
     setIsCommitDialogOpen(false);
 
     if (res.success) {
+      const baseTags = q.tags ? q.tags.filter(t => !t.startsWith("filename:")) : [];
+      const updatedTags = customFilename.trim() ? [...baseTags, `filename:${customFilename.trim()}`] : baseTags;
+      
+      const { error: updateError } = await supabase
+        .from("questions")
+        .update({ tags: updatedTags })
+        .eq("id", q.id);
+        
+      if (!updateError) {
+        setQ({ ...q, tags: updatedTags });
+      }
+
       toast.success(
         <div className="flex flex-col gap-1">
           <span className="font-semibold">Successfully pushed code to GitHub!</span>
@@ -361,9 +385,9 @@ export default function QuestionDetail() {
         </Card>
       )}
 
-      {q.tags && q.tags.length > 0 && (
+      {q.tags && q.tags.filter(t => !t.startsWith("filename:")).length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {q.tags.map((t: string) => (
+          {q.tags.filter(t => !t.startsWith("filename:")).map((t: string) => (
             <span key={t} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">#{t}</span>
           ))}
         </div>
@@ -376,10 +400,22 @@ export default function QuestionDetail() {
               <Github className="h-5 w-5 text-primary" /> Push to GitHub
             </DialogTitle>
             <DialogDescription>
-              Confirm or customize the commit message for this push.
+              Confirm or customize the filename and commit message.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="file-name" className="text-left font-medium">
+                Filename
+              </Label>
+              <Input
+                id="file-name"
+                value={customFilename}
+                onChange={(e) => setCustomFilename(e.target.value)}
+                placeholder="e.g. two_sum.py"
+                className="col-span-3"
+              />
+            </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="commit-msg" className="text-left font-medium">
                 Commit Message

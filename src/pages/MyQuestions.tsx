@@ -309,9 +309,9 @@ export default function MyQuestions() {
                 )}
               </div>
 
-              {q.tags && q.tags.length > 0 && (
+              {q.tags && q.tags.filter((t) => !t.startsWith("filename:")).length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {q.tags.slice(0, 4).map((t) => (
+                  {q.tags.filter((t) => !t.startsWith("filename:")).slice(0, 4).map((t) => (
                     <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">#{t}</span>
                   ))}
                 </div>

@@ -6,7 +6,7 @@ interface GithubConfig {
   path: string;
 }
 
-const extensionMap: Record<string, string> = {
+export const extensionMap: Record<string, string> = {
   python: "py",
   javascript: "js",
   typescript: "ts",
@@ -178,11 +178,23 @@ export async function pushQuestionToGithub(
     space_complexity: string | null;
     code: string | null;
     language: string | null;
+    custom_filename?: string | null;
   },
   config: GithubConfig,
   customCommitMessage?: string
 ): Promise<{ success: boolean; filePath: string; htmlUrl?: string; message?: string }> {
-  const filePath = getGithubFilePath(q, config.path);
+  let filePath = "";
+  if (q.custom_filename?.trim()) {
+    let filename = q.custom_filename.trim();
+    if (!filename.includes(".")) {
+      const ext = extensionMap[q.language?.toLowerCase() || ""] || "txt";
+      filename = `${filename}.${ext}`;
+    }
+    const folder = config.path.trim().replace(/^\/+|\/+$/g, "");
+    filePath = folder ? `${folder}/${filename}` : filename;
+  } else {
+    filePath = getGithubFilePath(q, config.path);
+  }
   const content = formatCodeForPush(q);
   const commitMessage = customCommitMessage?.trim() || `docs: add solution for ${q.title} (${q.platform || "DSA Vault"})`;
 
