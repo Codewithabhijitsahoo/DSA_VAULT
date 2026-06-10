@@ -179,11 +179,12 @@ export async function pushQuestionToGithub(
     code: string | null;
     language: string | null;
   },
-  config: GithubConfig
+  config: GithubConfig,
+  customCommitMessage?: string
 ): Promise<{ success: boolean; filePath: string; htmlUrl?: string; message?: string }> {
   const filePath = getGithubFilePath(q, config.path);
   const content = formatCodeForPush(q);
-  const commitMessage = `docs: add solution for ${q.title} (${q.platform || "DSA Vault"})`;
+  const commitMessage = customCommitMessage?.trim() || `docs: add solution for ${q.title} (${q.platform || "DSA Vault"})`;
 
   try {
     // 1. Check if file already exists to get SHA

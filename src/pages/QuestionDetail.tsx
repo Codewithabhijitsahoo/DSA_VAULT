@@ -12,6 +12,16 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { getGithubConfig, pushQuestionToGithub } from "@/lib/github";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface QDetail {
   id: string;
@@ -46,6 +56,8 @@ export default function QuestionDetail() {
   const [copied, setCopied] = useState(false);
   const [practiceCount, setPracticeCount] = useState(0);
   const [pushingToGithub, setPushingToGithub] = useState(false);
+  const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false);
+  const [commitMessage, setCommitMessage] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -132,6 +144,17 @@ export default function QuestionDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handlePushClick = () => {
+    if (!q) return;
+    const config = getGithubConfig();
+    if (!config || !config.token || !config.username || !config.repo) {
+      toast.error("GitHub is not configured. Please connect your GitHub account in Settings.");
+      return;
+    }
+    setCommitMessage(`docs: add solution for ${q.title} (${q.platform || "DSA Vault"})`);
+    setIsCommitDialogOpen(true);
+  };
+
   const pushToGithub = async () => {
     if (!q) return;
     const config = getGithubConfig();
@@ -153,9 +176,11 @@ export default function QuestionDetail() {
         code: q.code,
         language: q.language,
       },
-      config
+      config,
+      commitMessage
     );
     setPushingToGithub(false);
+    setIsCommitDialogOpen(false);
 
     if (res.success) {
       toast.success(
@@ -248,7 +273,7 @@ export default function QuestionDetail() {
             <Button
               size="sm"
               variant="outline"
-              onClick={pushToGithub}
+              onClick={handlePushClick}
               disabled={pushingToGithub}
               className="border-secondary/20 bg-secondary/5 hover:bg-secondary/10 text-secondary font-semibold"
             >
@@ -343,6 +368,42 @@ export default function QuestionDetail() {
           ))}
         </div>
       )}
+
+      <Dialog open={isCommitDialogOpen} onOpenChange={setIsCommitDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Github className="h-5 w-5 text-primary" /> Push to GitHub
+            </DialogTitle>
+            <DialogDescription>
+              Confirm or customize the commit message for this push.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="commit-msg" className="text-left font-medium">
+                Commit Message
+              </Label>
+              <Input
+                id="commit-msg"
+                value={commitMessage}
+                onChange={(e) => setCommitMessage(e.target.value)}
+                placeholder="Commit message..."
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCommitDialogOpen(false)} disabled={pushingToGithub}>
+              Cancel
+            </Button>
+            <Button onClick={pushToGithub} disabled={pushingToGithub} className="gradient-hero text-primary-foreground shadow-glow">
+              {pushingToGithub ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Github className="h-4 w-4 mr-1.5" />}
+              {pushingToGithub ? "Pushing..." : "Confirm Push"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
