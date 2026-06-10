@@ -76,7 +76,7 @@ describe("GitHub Helper Functions", () => {
   });
 
   describe("formatCodeForPush", () => {
-    it("formats the header comments and appends code", () => {
+    it("returns only the code without header comments", () => {
       const q = {
         title: "Two Sum",
         difficulty: "easy",
@@ -89,13 +89,7 @@ describe("GitHub Helper Functions", () => {
       };
 
       const result = formatCodeForPush(q);
-      expect(result).toContain("# Title: Two Sum");
-      expect(result).toContain("# Difficulty: EASY");
-      expect(result).toContain("# Platform: LeetCode");
-      expect(result).toContain("# Link: https://leetcode.com/problems/two-sum");
-      expect(result).toContain("# Time Complexity: O(n)");
-      expect(result).toContain("# Space Complexity: O(n)");
-      expect(result).toContain("def twoSum(nums):");
+      expect(result).toBe("def twoSum(nums):\n    return []");
     });
   });
 

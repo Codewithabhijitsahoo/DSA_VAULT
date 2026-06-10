@@ -95,19 +95,7 @@ export function formatCodeForPush(q: {
   code: string | null;
   language: string | null;
 }) {
-  const comment = getCommentPrefix(q.language);
-  const lines = [
-    `${comment} Title: ${q.title}`,
-    q.difficulty ? `${comment} Difficulty: ${q.difficulty.toUpperCase()}` : null,
-    q.platform ? `${comment} Platform: ${q.platform}` : null,
-    q.problem_link ? `${comment} Link: ${q.problem_link}` : null,
-    q.time_complexity ? `${comment} Time Complexity: ${q.time_complexity}` : null,
-    q.space_complexity ? `${comment} Space Complexity: ${q.space_complexity}` : null,
-    comment,
-  ].filter(Boolean) as string[];
-
-  const header = lines.join("\n") + "\n\n";
-  return header + (q.code || "");
+  return q.code || "";
 }
 
 // Convert string to base64 safely supporting Unicode characters
